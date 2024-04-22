@@ -37,11 +37,13 @@ def write(msg):
 
         for dest_id in node_ids():
             if len(log) >= nextIndex[dest_id]:
-                send(dest_id, type="appendEntries", message=(currentTerm, # term
-                                                              nextIndex[dest_id]-1, # prevLogIndex
-                                                              log[nextIndex[dest_id]-1], # prevLogTerm
-                                                              [log[i] for i in range(nextIndex[dest_id],len(log))], # entries[]
-                                                              commitIndex)) # leaderCommit
+                send(dest_id, type="appendEntries", message=(
+                    currentTerm, # term
+                    nextIndex[dest_id]-1, # prevLogIndex
+                    log[nextIndex[dest_id]-1], # prevLogTerm
+                    [log[i] for i in range(nextIndex[dest_id],len(log))], # entries[]
+                    commitIndex) # leaderCommit
+                )
 
 @handler
 def appendEntries(msg):
@@ -101,11 +103,13 @@ def appendEntries_insuccess(msg):
     dest_id = msg.src
     
     nextIndex[dest_id] -= 1
-    send(dest_id, type="appendEntries", message=(currentTerm, # term
-                                                              nextIndex[dest_id]-1, # prevLogIndex
-                                                              log[nextIndex[dest_id]-1], # prevLogTerm
-                                                              [log[i] for i in range(nextIndex[dest_id],len(log))], # entries[]
-                                                              commitIndex)) # leaderCommit
+    send(dest_id, type="appendEntries", message=(
+        currentTerm, # term
+        nextIndex[dest_id]-1, # prevLogIndex
+        log[nextIndex[dest_id]-1], # prevLogTerm
+        [log[i] for i in range(nextIndex[dest_id],len(log))], # entries[]
+        commitIndex) # leaderCommit
+    )
 
 @handler
 def read(msg):
