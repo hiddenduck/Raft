@@ -27,7 +27,7 @@ class Leader(Follower):
                     self.nextIndex[dest_id]-1, # prevLogIndex
                     self.log[self.nextIndex[dest_id]-1], # prevLogTerm
                     [self.log[i] for i in range(self.nextIndex[dest_id],len(self.log))], # entries[]
-                    self.commitIndex)
-                     ) # leaderCommit
+                    self.commitIndex) # leaderCommit
+                )
 
     
