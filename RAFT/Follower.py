@@ -28,13 +28,13 @@ class Follower:
         leaderTerm, prevLogIndex, prevLogTerm, entries, leaderCommit = tuple(msg.body.message)
 
         if leaderID == node_ids()[0]:
-            if leaderTerm >= self.currentTerm and len(log) > prevLogIndex and log[prevLogIndex] == prevLogTerm:
+            if leaderTerm >= self.currentTerm and len(self.log) > prevLogIndex and self.log[prevLogIndex] == prevLogTerm:
                 for i,entry in enumerate(entries):
-                    log[i+prevLogIndex] = entry
+                    self.log[i+prevLogIndex] = entry
                 
-                if leaderCommit > commitIndex:
-                    commitIndex = min(leaderCommit, len(log))
+                if leaderCommit > self.commitIndex:
+                    self.commitIndex = min(leaderCommit, len(self.log))
                 
-                reply(msg, type="appendEntries_success", nextIndex=len(log))
+                reply(msg, type="appendEntries_success", nextIndex=len(self.log))
             else:
                 reply(msg, type="appendEntries_insuccess")
