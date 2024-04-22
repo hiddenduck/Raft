@@ -22,10 +22,12 @@ class Leader(Follower):
 
         for dest_id in node_ids():
             if len(self.log) >= self.nextIndex[dest_id]:
-                send(dest_id, type="appendEntries", message=(self.currentTerm, # term
-                                                              self.nextIndex[dest_id]-1, # prevLogIndex
-                                                              self.log[self.nextIndex[dest_id]-1], # prevLogTerm
-                                                              [self.log[i] for i in range(self.nextIndex[dest_id],len(self.log))], # entries[]
-                                                              self.commitIndex)) # leaderCommit
+                send(dest_id, type="appendEntries", message=(
+                    self.currentTerm, # term
+                    self.nextIndex[dest_id]-1, # prevLogIndex
+                    self.log[self.nextIndex[dest_id]-1], # prevLogTerm
+                    [self.log[i] for i in range(self.nextIndex[dest_id],len(self.log))], # entries[]
+                    self.commitIndex)
+                     ) # leaderCommit
 
     
