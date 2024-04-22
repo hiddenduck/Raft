@@ -14,13 +14,13 @@ class Follower:
         self.commitIndex = 0
         self.lastApplied = 0
     
-    def read(msg):
+    def read(self, msg):
         reply(msg, type='error', code='11', text='not the leader')
 
-    def write(msg):
+    def write(self, msg):
         reply(msg, type='error', code='11', text='not the leader')
 
-    def cas(msg):
+    def cas(self, msg):
         reply(msg, type='error', code='10', text='unsupported')
 
     def appendEntries(self, msg):
