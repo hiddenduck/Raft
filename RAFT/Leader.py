@@ -8,9 +8,9 @@ class Leader(Follower):
         self.nextIndex = {}
         self.matchIndex = {}
     
-    def read(msg):
+    def read(self, msg):
 
-        kv_store = super.self.kv_store
+        kv_store =self.kv_store
 
         if msg.body.key in kv_store:
             reply(msg, type='read_ok', value=kv_store[msg.body.key])
@@ -18,14 +18,14 @@ class Leader(Follower):
             reply(msg, type='error', code='20', text='key does not exist')
     
     def write(self, msg):
-        super().self.log.append((msg, super.self.currentTerm))
+        self.log.append((msg, self.currentTerm))
 
         for dest_id in node_ids():
-            if len(log) >= super.self.nextIndex[dest_id]:
-                send(dest_id, type="appendEntries", message=(super.self.currentTerm, # term
-                                                              super.self.nextIndex[dest_id]-1, # prevLogIndex
-                                                              log[super.self.nextIndex[dest_id]-1], # prevLogTerm
-                                                              [log[i] for i in range(super.self.nextIndex[dest_id],len(log))], # entries[]
-                                                              super.self.commitIndex)) # leaderCommit
+            if len(self.log) >= self.nextIndex[dest_id]:
+                send(dest_id, type="appendEntries", message=(self.currentTerm, # term
+                                                              self.nextIndex[dest_id]-1, # prevLogIndex
+                                                              self.log[self.nextIndex[dest_id]-1], # prevLogTerm
+                                                              [self.log[i] for i in range(self.nextIndex[dest_id],len(self.log))], # entries[]
+                                                              self.commitIndex)) # leaderCommit
 
     
