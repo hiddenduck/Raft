@@ -15,6 +15,7 @@ import json
 import sys
 from types import SimpleNamespace as sn
 
+_active_class = None
 _node_id = None
 _node_ids = []
 _msg_id = 0
@@ -67,6 +68,15 @@ def init(msg):
     _node_ids = msg.body.node_ids
     reply(msg, type='init_ok')
 
+def setActiveClass(new):
+    global _active_class
+    #tmp = _active_class
+    _active_class = new
+    #return tmp
+
+def getActiveClass():
+    return _active_class
+
 def _receive():
     data = sys.stdin.readline()
     if data:
@@ -87,6 +97,10 @@ def receive():
             return None
         elif (t := msg.body.type) in _handlers:
             _handlers[t](msg)
+        elif (fun := getattr(_active_class, msg.body.type)) != None:
+            fun(msg)
         else:
             return msg
-
+        
+if __name__ == "__main__":
+    receive()
