@@ -16,7 +16,7 @@ import sys
 from types import SimpleNamespace as sn
 
 _node_id = None
-_node_ids = None
+_node_ids = []
 _msg_id = 0
 _handlers = {}
 
