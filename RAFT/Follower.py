@@ -1,19 +1,12 @@
+import SharedState
 from node import *
 
-class Follower:
+class Follower(SharedState):
     def __init__(self):
-        # Lin-kv Store
-        self.kv_store = dict()
+        super().__init__()
+        
+    #TODO Criar thread que dá timeout para um valor aleatório entre 150-300
 
-        # Persistent state
-        self.currentTerm = 0
-        self.votedFor = None
-        self.log = []
-
-        # Volatile state
-        self.commitIndex = 0
-        self.lastApplied = 0
-    
     def read(self, msg):
         reply(msg, type='error', code='11', text='not the leader')
 
@@ -24,17 +17,19 @@ class Follower:
         reply(msg, type='error', code='10', text='unsupported')
 
     def appendEntries(self, msg):
-        leaderID = msg.src
-        leaderTerm, prevLogIndex, prevLogTerm, entries, leaderCommit = tuple(msg.body.message)
+        term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit = tuple(msg.body.message)
 
-        if leaderID == node_ids()[0]:
-            if leaderTerm >= self.currentTerm and len(self.log) > prevLogIndex and self.log[prevLogIndex] == prevLogTerm:
-                for i,entry in enumerate(entries):
-                    self.log[i+prevLogIndex] = entry
-                
-                if leaderCommit > self.commitIndex:
-                    self.commitIndex = min(leaderCommit, len(self.log))
-                
-                reply(msg, type="appendEntries_success", nextIndex=len(self.log))
-            else:
-                reply(msg, type="appendEntries_insuccess")
+        
+
+        if term >= self.currentTerm and len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex] == prevLogTerm):
+            self.currentTerm = term
+            self.log = log[0:prevLogIndex+1] + entries
+            
+            if leaderCommit > self.commitIndex:
+                self.lastApplied = self.commitIndex
+                self.commitIndex = min(leaderCommit, len(self.log)-1)
+                applyLogEntries(self.lastApplied)
+            
+            reply(msg, type="appendEntries_success", term=self.currentTerm)
+        else:
+            reply(msg, type="appendEntries_insuccess")

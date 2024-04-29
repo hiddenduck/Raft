@@ -1,12 +1,17 @@
-from Follower import *
+import SharedState
+from node import *
 
-class Leader(Follower):
+class Leader(SharedState):
     def __init__(self):
         super().__init__()
 
         # Volatile state
         self.nextIndex = {}
         self.matchIndex = {}
+        for node in node_ids():
+            self.nextIndex[node] = self.currentTerm + 1
+            self.matchIndex[node] = -1
+            
     
     def read(self, msg):
 
@@ -24,10 +29,53 @@ class Leader(Follower):
             if len(self.log) >= self.nextIndex[dest_id]:
                 send(dest_id, type="appendEntries", message=(
                     self.currentTerm, # term
+                    node_id(), #leaderId
                     self.nextIndex[dest_id]-1, # prevLogIndex
                     self.log[self.nextIndex[dest_id]-1], # prevLogTerm
                     [self.log[i] for i in range(self.nextIndex[dest_id],len(self.log))], # entries[]
                     self.commitIndex) # leaderCommit
                 )
+                
+    def appendEntries_success(msg):
+        global nextIndex, matchIndex, log
+        nextIndex[msg.src] = msg.body.nextIndex
+        matchIndex[msg.src] = msg.body.nextIndex
 
-    
+        # Detect Majority
+
+        count = 0
+        candidate = None
+
+        for replica in matchIndex.keys():
+            if count == 0:
+                candidate = matchIndex[replica]
+                count = 1
+            else:
+                count = count+1 if matchIndex[replica] == candidate else count-1
+        
+        count = 0
+
+        for replica in matchIndex.keys():
+            if matchIndex[replica] == candidate:
+                count += 1
+        
+        if count > len(matchIndex.keys())/2 and candidate > commitIndex:
+            for toBeCommited in log[commitIndex:candidate]:
+                body = log[toBeCommited][0].body
+                values[body.key] = body.value
+            commitIndex = candidate
+
+
+    def appendEntries_insuccess(self, msg):
+        global nextIndex, currentTerm, log
+        dest_id = msg.src
+        
+        nextIndex[dest_id] -= 1
+        send(dest_id, type="appendEntries", message=(
+            self.currentTerm, # term
+            node_id(), #leaderId
+            self.nextIndex[dest_id]-1, # prevLogIndex
+            self.log[self.nextIndex[dest_id]-1], # prevLogTerm
+            [self.log[i] for i in range(self.nextIndex[dest_id],len(self.log))], # entries[]
+            self.commitIndex) # leaderCommit
+            )
