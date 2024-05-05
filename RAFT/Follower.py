@@ -2,8 +2,8 @@ import SharedState
 from node import *
 
 class Follower(SharedState):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, node_id, node_ids):
+        super().__init__(node_id, node_ids)
         
     #TODO Criar thread que dá timeout para um valor aleatório entre 150-300
 
