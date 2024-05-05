@@ -1,27 +1,37 @@
 #!/usr/bin/env python
 import logging
-from concurrent.futures import ThreadPoolExecutor
-from ms import send, receiveAll, reply, exitOnError
+from node import *
 import Follower
 
 logging.getLogger().setLevel(logging.DEBUG)
-executor=ThreadPoolExecutor(max_workers=1)
 
-def handle(msg):
+node = None
+
+@handler
+def init(msg):
     global node
 
-    if msg.body.type == 'init':
-        node_id = msg.body.node_id
-        node_ids = msg.body.node_ids
-        logging.info('node %s initialized', node_id)
+    node_id = msg.body.node_id
+    node_ids = msg.body.node_ids
+    logging.info('node %s initialized', node_id)
 
-        node = Follower(node_id, [id for id in node_ids if id != node_id] if node_ids != None else None)
+    node = Follower(node_id, [id for id in node_ids if id != node_id] if node_ids != None else None)
 
-        logging.info('Follower Created')
+    logging.info('Follower Created')
 
-        reply(msg, type='init_ok')
-    else:
-        node.handle(msg)
+    reply(msg, type='init_ok')
 
+@handler
+def read(msg):
+    node.read(msg)
 
-executor.map(lambda msg: exitOnError(handle, msg), receiveAll())
+@handler
+def write(msg):
+    node.write(msg)
+
+@handler
+def cas(msg):
+    node.cas(msg)
+
+if __name__ == "__main__":
+    receive()

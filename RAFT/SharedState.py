@@ -21,3 +21,23 @@ class SharedState:
 
         # Other
         self.timer = Node_Timer(150, 300)
+        self.timer.start()
+
+    def getState(self):
+        return self
+    
+    def changeState(self, sharedState):
+        # Lin-kv Store
+        self.kv_store = sharedState.kv_store
+
+        # Persistent state
+        self.currentTerm = sharedState.currentTerm
+        self.votedFor = None
+        self.log = sharedState.currentTerm
+
+        # Volatile state
+        self.commitIndex = sharedState.commitIndex
+        self.lastApplied = sharedState.lastApplied
+
+        # Other
+        self.timer.reset()
