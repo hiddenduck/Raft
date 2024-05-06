@@ -29,13 +29,13 @@ class Follower(SharedState):
 
         if term >= self.currentTerm and len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex] == prevLogTerm):
             self.currentTerm = term
-            self.log = log[0:prevLogIndex+1] + entries
+            self.log = log[:prevLogIndex+1] + entries
             
             if leaderCommit > self.commitIndex:
-                self.lastApplied = self.commitIndex
                 self.commitIndex = min(leaderCommit, len(self.log)-1)
-                applyLogEntries(self.lastApplied)
-            
+                applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
+                self.lastApplied = self.commitIndex
+
             reply(msg, type="appendEntries_success", term=self.currentTerm)
         else:
             reply(msg, type="appendEntries_insuccess")
