@@ -1,10 +1,11 @@
-import SharedState
+from SharedState import SharedState
 from node import *
 
 class Leader(SharedState):
-    def __init__(self):
+    def __init__(self, sharedState):
         super().__init__()
-
+        # set State
+        super().changeState(sharedState)
         # Volatile state
         self.nextIndex = {}
         self.matchIndex = {}

@@ -18,7 +18,7 @@ class Candidate(SharedState):
 
     def requestVote(self):
         lenLog = len(self.log)
-        for dest_id in self.node_ids():
+        for dest_id in node_ids():
             send(dest_id, type="request_vote", term=self.currentTerm, lastLogIndex = lenLog, lastLogTerm = self.log[-1] if lenLog==0 else -1)
     
     def handleVote(self, msg):

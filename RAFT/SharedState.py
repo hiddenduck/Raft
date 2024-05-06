@@ -13,8 +13,8 @@ class SharedState:
         self.log = []
 
         # Volatile state
-        self.commitIndex = 0
-        self.lastApplied = 0
+        self.commitIndex = -1
+        self.lastApplied = -1
 
         # Other
         self.timer = Node_Timer(150, 300)
