@@ -1,5 +1,6 @@
 from node import *
-import Node_Timer
+# import Node_Timer
+from Node_Timer import Node_Timer
 
 class SharedState:
     def __init__(self, node_id, node_ids):
