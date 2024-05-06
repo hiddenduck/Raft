@@ -11,9 +11,14 @@ as SimpleNamespace to allow dot notation. The message body in send and reply
 functions can be defined by a dict/SimpleNamespace or/and keyword arguments.
 """
 
+import logging
 import json
 import sys
+from Follower import Follower
+from SharedState import SharedState
 from types import SimpleNamespace as sn
+
+logging.getLogger().setLevel(logging.DEBUG)
 
 _active_class = None
 _node_id = None
@@ -65,7 +70,14 @@ def init(msg):
     """Default handler for init message."""
     global _node_id, _node_ids
     _node_id = msg.body.node_id
-    _node_ids = msg.body.node_ids
+    _node_ids = [id for id in msg.body.node_ids if id != _node_id]
+
+    logging.info('node %s initialized', _node_id)
+
+    setActiveClass(Follower(SharedState()))
+
+    logging.info('Follower Created')
+    
     reply(msg, type='init_ok')
 
 def setActiveClass(new):

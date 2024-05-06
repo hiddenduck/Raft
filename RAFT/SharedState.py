@@ -3,11 +3,7 @@ from node import *
 from Node_Timer import Node_Timer
 
 class SharedState:
-    def __init__(self, node_id, node_ids):
-        # Maelstrom
-        self.node_id = node_id
-        self.node_ids = node_ids
-
+    def __init__(self):
         # Lin-kv Store
         self.kv_store = dict()
 
@@ -22,7 +18,6 @@ class SharedState:
 
         # Other
         self.timer = Node_Timer(150, 300)
-        self.timer.start()
 
     def getState(self):
         return self
@@ -39,6 +34,3 @@ class SharedState:
         # Volatile state
         self.commitIndex = sharedState.commitIndex
         self.lastApplied = sharedState.lastApplied
-
-        # Other
-        self.timer.reset()

@@ -1,10 +1,15 @@
-import SharedState
-import Candidate
+from SharedState import SharedState
+from Candidate import Candidate
 from node import *
 
 class Follower(SharedState):
-    def __init__(self, node_id, node_ids):
-        super().__init__(node_id, node_ids)
+    def __init__(self, sharedState):
+        super().__init__()
+        # Set State
+        super().changeState(sharedState)
+        
+        self.timer.create(lambda: send(node_id(), type="startElection"))
+        self.timer.start()
     
     # Maelstrom
     def read(self, msg):
@@ -16,12 +21,8 @@ class Follower(SharedState):
     def cas(self, msg):
         reply(msg, type='error', code='11', text='not the leader')
 
-    def startElection(self):
-        self.timer.stop() # just in case
-        return Candidate()
-    
-    def receiveInfo(self, sharedState):
-        super().changeState(sharedState)
+    def startElection(self, msg):
+        setActiveClass(Candidate(super().getState()))
 
     def appendEntries(self, msg):
         term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit = tuple(msg.body.message)
