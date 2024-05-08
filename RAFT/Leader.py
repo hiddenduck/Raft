@@ -37,7 +37,7 @@ class Leader(SharedState):
                     self.commitIndex) # leaderCommit
                 )
                 
-    def appendEntries_success(msg):
+    def appendEntries_success(self, msg):
         global nextIndex, matchIndex, log
         nextIndex[msg.src] = msg.body.nextIndex
         matchIndex[msg.src] = msg.body.nextIndex
@@ -63,9 +63,8 @@ class Leader(SharedState):
         if count > len(matchIndex.keys())/2 and candidate > commitIndex:
             for toBeCommited in log[commitIndex:candidate]:
                 body = log[toBeCommited][0].body
-                values[body.key] = body.value
+                self.kv_store[body.key] = body.value
             commitIndex = candidate
-
 
     def appendEntries_insuccess(self, msg):
         global nextIndex, currentTerm, log
