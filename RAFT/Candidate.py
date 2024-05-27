@@ -19,7 +19,7 @@ class Candidate(SharedState):
     def requestVote(self):
         lenLog = len(self.log)
         for dest_id in node_ids():
-            send(dest_id, type="request_vote", term=self.currentTerm, lastLogIndex = lenLog, lastLogTerm = self.log[-1] if lenLog==0 else -1)
+            send(dest_id, type="request_vote", term=self.currentTerm, lastLogIndex = lenLog, lastLogTerm = self.log[-1][1] if lenLog!=0 else 0)
     
     def handleVote(self, msg):
         if msg.body.term == self.currentTerm:
@@ -27,9 +27,15 @@ class Candidate(SharedState):
 
             if len(self.voters) >= len(node_ids()) / 2: # case (a): a Candidate received majority of votes
                 setActiveClass(Leader())
+
+    def appendEntries(self, msg):
+        term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit = tuple(msg.body.message)
+
+        if term >= self.currentTerm: # if a leader a valid leader contacts:
+            self.becomeFollower(super().getState(), msg)
     
     def becomeFollower():
-        setActiveClass(Follower())
+        setActiveClass(Follower(super().getState()))
 
     def startElection(self):
         setActiveClass(Candidate(super().getState()))

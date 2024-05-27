@@ -10,6 +10,11 @@ class Follower(SharedState):
         
         self.timer.create(lambda: send(node_id(), type="startElection"))
         self.timer.start()
+
+    def __init__(self, sharedState, leaderMsg):
+        self.__init__(sharedState)
+
+        self.appendEntries(leaderMsg)
     
     # Maelstrom
     def read(self, msg):
@@ -24,6 +29,11 @@ class Follower(SharedState):
     def startElection(self, msg):
         setActiveClass(Candidate(super().getState()))
 
+
+    def applyLogEntries(self, entries):
+        for ((key, value), _) in entries:
+            self.kv_store[key] = value
+
     def appendEntries(self, msg):
         term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit = tuple(msg.body.message)
 
@@ -33,7 +43,7 @@ class Follower(SharedState):
             
             if leaderCommit > self.commitIndex:
                 self.commitIndex = min(leaderCommit, len(self.log)-1)
-                applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
+                self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
                 self.lastApplied = self.commitIndex
 
             reply(msg, type="appendEntries_success", term=self.currentTerm)

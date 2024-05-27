@@ -10,7 +10,7 @@ class SharedState:
         # Persistent state
         self.currentTerm = 0
         self.votedFor = None
-        self.log = []
+        self.log = [] # log format -> ((key,value), term)
 
         # Volatile state
         self.commitIndex = -1
