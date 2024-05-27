@@ -29,6 +29,15 @@ class Follower(SharedState):
     def startElection(self, msg):
         setActiveClass(Candidate(super().getState()))
 
+    def requestVote(self, msg):
+        candidateID = msg.src
+        term = msg.body.term
+
+        if term < self.currentTerm or (self.votedFor != None and self.votedFor != candidateID):
+            reply() #todo: reply false, is it worth tho? in the paper says to reply false
+        else:
+            self.votedFor = msg.src
+
 
     def applyLogEntries(self, entries):
         for ((key, value), _) in entries:

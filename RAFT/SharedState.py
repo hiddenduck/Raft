@@ -34,3 +34,12 @@ class SharedState:
         # Volatile state
         self.commitIndex = sharedState.commitIndex
         self.lastApplied = sharedState.lastApplied
+    
+    def read(self, msg):
+        reply(msg, type='error', code='11', text='not the leader')
+
+    def write(self, msg):
+        reply(msg, type='error', code='11', text='not the leader')
+
+    def cas(self, msg):
+        reply(msg, type='error', code='11', text='not the leader')
