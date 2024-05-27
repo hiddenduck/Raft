@@ -22,9 +22,21 @@ class Candidate(SharedState):
             send(dest_id, type="requestVote", term=self.currentTerm, lastLogIndex = lenLog, lastLogTerm = self.log[-1][1] if lenLog!=0 else 0)
     
     def requestVote(self, msg):
-        if msg.body.term > self.currentTerm:
-            self.currentTerm = msg.body.term
+        candidateID = msg.src
+        term = msg.body.term
+
+        if term > self.currentTerm:
+            self.currentTerm = term
+            if self.log[msg.body.lastLogIndex] != msg.body.lastLogTerm: 
+                self.votedFor = None
+                reply(msg, type='handleVote', term=self.currentTerm, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
+            else:
+                self.votedFor = candidateID
+                reply(msg, type="handleVote", term=msg.body.term, voteGranted = True)
+
             self.becomeFollower()
+        else:
+            reply(msg, type="handleVote", term=self.currentTerm, voteGranted = False)
 
     def handleVote(self, msg):
         if msg.body.term == self.currentTerm:
@@ -32,9 +44,10 @@ class Candidate(SharedState):
 
             if len(self.voters) >= len(node_ids()) / 2: # case (a): a Candidate received majority of votes
                 setActiveClass(Leader())
+
         elif msg.body.term > self.currentTerm:
             self.currentTerm = msg.body.term
-            setActiveClass(Follower(super().getState()))
+            self.becomeFollower()
 
 
     def appendEntries(self, msg):
@@ -43,6 +56,7 @@ class Candidate(SharedState):
         if term >= self.currentTerm: # if a leader a valid leader contacts:
             self.becomeFollower(super().getState(), msg)
     
+    #Estas funções têm de ser sempre as últimas a serem invocadas num método (garantir que houve troca)
     def becomeFollower():
         setActiveClass(Follower(super().getState()))
 

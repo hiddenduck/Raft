@@ -43,3 +43,5 @@ class SharedState:
 
     def cas(self, msg):
         reply(msg, type='error', code='11', text='not the leader')
+
+    

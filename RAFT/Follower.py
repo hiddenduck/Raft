@@ -7,7 +7,7 @@ class Follower(SharedState):
         super().__init__()
         # Set State
         super().changeState(sharedState)
-        
+
         self.timer.create(lambda: send(node_id(), type="startElection"))
         self.timer.start()
 
