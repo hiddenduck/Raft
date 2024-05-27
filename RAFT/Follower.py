@@ -33,10 +33,12 @@ class Follower(SharedState):
         candidateID = msg.src
         term = msg.body.term
 
-        if term < self.currentTerm or (self.votedFor != None and self.votedFor != candidateID):
-            reply() #todo: reply false, is it worth tho? in the paper says to reply false
+        if term < self.currentTerm or (self.votedFor != None and self.votedFor != candidateID) or self.log[msg.body.lastLogIndex] != msg.body.lastLogTerm:
+            reply(msg, type='handleVote', term=self.currentTerm, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
         else:
             self.votedFor = msg.src
+            self.currentTerm = term
+            reply(msg, type='handleVote', term=term, voteGranted=True)
 
 
     def applyLogEntries(self, entries):
@@ -57,4 +59,4 @@ class Follower(SharedState):
 
             reply(msg, type="appendEntries_success", term=self.currentTerm)
         else:
-            reply(msg, type="appendEntries_insuccess")
+            reply(msg, type="appendEntries_insuccess", term=self.currentTerm)

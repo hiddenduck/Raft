@@ -32,6 +32,10 @@ class Candidate(SharedState):
 
             if len(self.voters) >= len(node_ids()) / 2: # case (a): a Candidate received majority of votes
                 setActiveClass(Leader())
+        elif msg.body.term > self.currentTerm:
+            self.currentTerm = msg.body.term
+            setActiveClass(Follower(super().getState()))
+
 
     def appendEntries(self, msg):
         term, _, _, _, _, _ = tuple(msg.body.message)
