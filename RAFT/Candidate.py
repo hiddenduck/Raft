@@ -22,7 +22,6 @@ class Candidate(SharedState):
             send(dest_id, type="requestVote", term=self.currentTerm, lastLogIndex = lenLog, lastLogTerm = self.log[-1][1] if lenLog!=0 else 0)
     
     def requestVote(self, msg):
-        candidateID = msg.src
         term = msg.body.term
 
         if term > self.currentTerm:

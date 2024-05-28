@@ -30,12 +30,11 @@ class Follower(SharedState):
         setActiveClass(Candidate(super().getState()))
 
     def requestVote(self, msg):
-        candidateID = msg.src
         term = msg.body.term
 
         _, lastLogTerm = self.log[-1]
         if  term < self.currentTerm or \
-            (term == self.currentTerm and self.votedFor != None and self.votedFor != candidateID) or \
+            (term == self.currentTerm and self.votedFor != None and self.votedFor != msg.src) or \
             msg.body.lastLogTerm < lastLogTerm or \
             (msg.body.lastLogTerm == lastLogTerm and msg.body.lastLogIndex < len(self.log)):
 
