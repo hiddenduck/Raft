@@ -14,8 +14,6 @@ functions can be defined by a dict/SimpleNamespace or/and keyword arguments.
 import logging
 import json
 import sys
-from Follower import Follower
-from SharedState import SharedState
 from types import SimpleNamespace as sn
 
 logging.getLogger().setLevel(logging.DEBUG)
@@ -67,6 +65,9 @@ def handler(func):
 
 @handler
 def init(msg):
+    # in order to avoid circular imports, we need to import inside the function
+    from Follower import Follower
+    from SharedState import SharedState
     """Default handler for init message."""
     global _node_id, _node_ids
     _node_id = msg.body.node_id

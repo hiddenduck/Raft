@@ -1,5 +1,4 @@
 from SharedState import SharedState
-from Follower import Follower
 from Leader import Leader
 from node import *
 
@@ -76,6 +75,7 @@ class Candidate(SharedState):
     
     #Estas funções têm de ser sempre as últimas a serem invocadas num método (garantir que houve troca)
     def becomeFollower():
+        from Follower import Follower
         setActiveClass(Follower(super().getState()))
 
     def startElection(self):

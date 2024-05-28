@@ -3,7 +3,7 @@ from Candidate import Candidate
 from node import *
 
 class Follower(SharedState):
-    def __init__(self, sharedState):
+    def __init__(self, sharedState, leaderMsg = None):
         super().__init__()
         # Set State
         super().changeState(sharedState)
@@ -11,10 +11,8 @@ class Follower(SharedState):
         self.timer.create(lambda: send(node_id(), type="startElection"))
         self.timer.start()
 
-    def __init__(self, sharedState, leaderMsg):
-        self.__init__(sharedState)
-
-        self.appendEntries(leaderMsg)
+        if leaderMsg:
+            self.appendEntries(leaderMsg)        
     
     # Maelstrom
     def read(self, msg):
@@ -54,7 +52,7 @@ class Follower(SharedState):
 
         if term >= self.currentTerm and len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex] == prevLogTerm):
             self.currentTerm = term
-            self.log = log[:prevLogIndex+1] + entries
+            self.log = self.log[:prevLogIndex+1] + entries
             
             if leaderCommit > self.commitIndex:
                 self.commitIndex = min(leaderCommit, len(self.log)-1)
