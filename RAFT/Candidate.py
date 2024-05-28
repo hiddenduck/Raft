@@ -27,8 +27,8 @@ class Candidate(SharedState):
 
         if term > self.currentTerm:
             self.currentTerm = term
+            self.votedFor = None
             if self.log[msg.body.lastLogIndex] != msg.body.lastLogTerm: 
-                self.votedFor = None
                 reply(msg, type='handleVote', term=self.currentTerm, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
             else:
                 self.votedFor = candidateID
@@ -51,10 +51,25 @@ class Candidate(SharedState):
 
 
     def appendEntries(self, msg):
-        term, _, _, _, _, _ = tuple(msg.body.message)
+        term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit = tuple(msg.body.message)
 
         if term >= self.currentTerm: # if a leader a valid leader contacts:
-            self.becomeFollower(super().getState(), msg)
+            if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex] == prevLogTerm):
+                self.currentTerm = term
+                self.log = log[:prevLogIndex+1] + entries
+                
+                if leaderCommit > self.commitIndex:
+                    self.commitIndex = min(leaderCommit, len(self.log)-1)
+                    self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
+                    self.lastApplied = self.commitIndex
+
+                reply(msg, type="appendEntries_success", term=self.currentTerm)
+            else:
+                reply(msg, type="appendEntries_insuccess", term=self.currentTerm)
+
+            self.becomeFollower()
+        else:
+            reply(msg, type="appendEntries_insuccess", term=self.currentTerm)
     
     #Estas funções têm de ser sempre as últimas a serem invocadas num método (garantir que houve troca)
     def becomeFollower():
