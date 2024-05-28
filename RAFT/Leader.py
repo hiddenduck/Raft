@@ -38,39 +38,37 @@ class Leader(SharedState):
                 )
                 
     def appendEntries_success(self, msg):
-        global nextIndex, matchIndex, log
-        nextIndex[msg.src] = msg.body.nextIndex
-        matchIndex[msg.src] = msg.body.nextIndex
+        self.nextIndex[msg.src] = msg.body.nextIndex
+        self.matchIndex[msg.src] = msg.body.nextIndex
 
         # Detect Majority
 
         count = 0
         candidate = None
 
-        for replica in matchIndex.keys():
+        for replica in self.matchIndex.keys():
             if count == 0:
-                candidate = matchIndex[replica]
+                candidate = self.matchIndex[replica]
                 count = 1
             else:
-                count = count+1 if matchIndex[replica] == candidate else count-1
+                count = count+1 if self.matchIndex[replica] == candidate else count-1
         
         count = 0
 
-        for replica in matchIndex.keys():
-            if matchIndex[replica] == candidate:
+        for replica in self.matchIndex.keys():
+            if self.matchIndex[replica] == candidate:
                 count += 1
         
-        if count > len(matchIndex.keys())/2 and candidate > commitIndex:
-            for toBeCommited in log[commitIndex:candidate]:
-                body = log[toBeCommited][0].body
+        if count > len(self.matchIndex.keys())/2 and candidate > self.commitIndex:
+            for toBeCommited in log[self.commitIndex:candidate]:
+                body = self.log[toBeCommited][0].body
                 self.kv_store[body.key] = body.value
-            commitIndex = candidate
+            self.commitIndex = candidate
 
     def appendEntries_insuccess(self, msg):
-        global nextIndex, currentTerm, log
         dest_id = msg.src
         
-        nextIndex[dest_id] -= 1
+        self.nextIndex[dest_id] -= 1
         send(dest_id, type="appendEntries", message=(
             self.currentTerm, # term
             node_id(), #leaderId

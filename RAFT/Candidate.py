@@ -28,24 +28,28 @@ class Candidate(SharedState):
         if term > self.currentTerm:
             self.currentTerm = term
             self.votedFor = None
-            if self.log[msg.body.lastLogIndex] != msg.body.lastLogTerm: 
+
+            _, lastLogTerm = self.log[-1]
+            if  msg.body.lastLogTerm < lastLogTerm or \
+                (msg.body.lastLogTerm == lastLogTerm and msg.body.lastLogIndex < len(self.log)):
                 reply(msg, type='handleVote', term=self.currentTerm, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
             else:
-                self.votedFor = candidateID
-                reply(msg, type="handleVote", term=msg.body.term, voteGranted = True)
+                self.votedFor = msg.src
+                self.currentTerm = term
+                reply(msg, type='handleVote', term=term, voteGranted=True)
 
             self.becomeFollower()
         else:
             reply(msg, type="handleVote", term=self.currentTerm, voteGranted = False)
 
     def handleVote(self, msg):
-        if msg.body.term == self.currentTerm:
+        if msg.body.voteGranted:
             self.voters.add(msg.src)
 
             if len(self.voters) >= len(node_ids()) / 2: # case (a): a Candidate received majority of votes
                 setActiveClass(Leader())
 
-        elif msg.body.term > self.currentTerm:
+        elif msg.body.term >= self.currentTerm:
             self.currentTerm = msg.body.term
             self.becomeFollower()
 
