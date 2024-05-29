@@ -112,8 +112,9 @@ def receive():
             _handlers[t](msg)
         elif (fun := getattr(_active_class, msg.body.type)) != None:
             fun(msg)
-        else:
-            return msg
+        #Não devolver a mensagem de modo a não crashar nenhum nodo
+        #else:
+        #    return msg
         
 if __name__ == "__main__":
     receive()

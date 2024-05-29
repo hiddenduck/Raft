@@ -50,9 +50,12 @@ class Follower(SharedState):
     def appendEntries(self, msg):
         term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit = tuple(msg.body.message)
 
-        if term >= self.currentTerm and len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex] == prevLogTerm):
+        if term >= self.currentTerm and len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
+            self.timer.reset()
             self.currentTerm = term
-            self.log = self.log[:prevLogIndex+1] + entries
+            
+            if prevLogIndex >= 0:
+                self.log = self.log[:prevLogIndex+1] + entries
             
             if leaderCommit > self.commitIndex:
                 self.commitIndex = min(leaderCommit, len(self.log)-1)
