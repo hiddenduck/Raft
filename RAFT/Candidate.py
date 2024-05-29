@@ -25,15 +25,14 @@ class Candidate(SharedState):
 
         if term > self.currentTerm:
             self.currentTerm = term
-            self.votedFor = None
 
             _, lastLogTerm = self.log[-1]
             if  msg.body.lastLogTerm < lastLogTerm or \
                 (msg.body.lastLogTerm == lastLogTerm and msg.body.lastLogIndex < len(self.log)):
+                self.votedFor = None
                 reply(msg, type='handleVote', term=self.currentTerm, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
             else:
                 self.votedFor = msg.src
-                self.currentTerm = term
                 reply(msg, type='handleVote', term=term, voteGranted=True)
 
             self.becomeFollower()
