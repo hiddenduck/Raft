@@ -31,6 +31,7 @@ class Candidate(SharedState):
             if  msg.body.lastLogTerm < lastLogTerm or \
                 (msg.body.lastLogTerm == lastLogTerm and msg.body.lastLogIndex < len(self.log)):
                 self.votedFor = None
+                #Não devíamos responder se não vai mudar em nada
                 reply(msg, type='handleVote', term=term, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
             else:
                 self.votedFor = msg.src
@@ -38,6 +39,7 @@ class Candidate(SharedState):
 
             self.becomeFollower()
         else:
+            #Ligeiramente diferente dos votos dos líderes, só avisa se o seu termo for maior
             reply(msg, type="handleVote", term=self.currentTerm, voteGranted = False)
 
     def handleVote(self, msg):
@@ -47,17 +49,22 @@ class Candidate(SharedState):
             if len(self.voters) >= len(node_ids()) / 2: # case (a): a Candidate received majority of votes
                 setActiveClass(Leader())
 
-        elif msg.body.term >= self.currentTerm:
+        elif self.currentTerm < msg.body.term:
             self.currentTerm = msg.body.term
             self.becomeFollower()
 
     def appendEntries(self, msg):
         term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit = tuple(msg.body.message)
 
+        success = False
+        changeType = False
+
         if term >= self.currentTerm: # if a valid leader contacts:
             self.currentTerm = term
+            changeType = True
 
             if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
+                success = True
                 
                 if prevLogIndex >= 0:
                     self.log = self.log[:prevLogIndex+1] + entries
@@ -67,14 +74,14 @@ class Candidate(SharedState):
                     self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
                     self.lastApplied = self.commitIndex
                     
-                reply(msg, type="appendEntries_success", term=self.currentTerm)
-            else:
-                reply(msg, type="appendEntries_insuccess", term=self.currentTerm)
-
-            self.becomeFollower()
+        if success:
+            reply(msg, type="appendEntries_success", term=self.currentTerm)
         else:
             reply(msg, type="appendEntries_insuccess", term=self.currentTerm)
-    
+
+        if changeType:
+            self.becomeFollower()
+
     #Estas funções têm de ser sempre as últimas a serem invocadas num método (garantir que houve troca)
     def becomeFollower():
         from Follower import Follower

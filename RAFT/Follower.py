@@ -35,7 +35,6 @@ class Follower(SharedState):
             (term == self.currentTerm and self.votedFor != None and self.votedFor != msg.src) or \
             msg.body.lastLogTerm < lastLogTerm or \
             (msg.body.lastLogTerm == lastLogTerm and msg.body.lastLogIndex < len(self.log)):
-
             reply(msg, type='handleVote', term=self.currentTerm, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
         else:
             self.votedFor = msg.src
@@ -50,11 +49,14 @@ class Follower(SharedState):
     def appendEntries(self, msg):
         term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit = tuple(msg.body.message)
 
+        success = False
+
         if term >= self.currentTerm:
             self.timer.reset()
             self.currentTerm = term
 
             if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
+                success = True
 
                 if prevLogIndex >= 0:
                     self.log = self.log[:prevLogIndex+1] + entries
@@ -63,10 +65,8 @@ class Follower(SharedState):
                     self.commitIndex = min(leaderCommit, len(self.log)-1)
                     self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
                     self.lastApplied = self.commitIndex
-                    
-                reply(msg, type="appendEntries_success", term=self.currentTerm)
-            else:
-                reply(msg, type="appendEntries_insuccess", term=self.currentTerm)
 
+        if success:
+            reply(msg, type="appendEntries_success", term=self.currentTerm)
         else:
             reply(msg, type="appendEntries_insuccess", term=self.currentTerm)

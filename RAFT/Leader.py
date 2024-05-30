@@ -13,6 +13,7 @@ class Leader(SharedState):
             self.nextIndex[node] = self.currentTerm + 1
             self.matchIndex[node] = -1
         
+        send(node_id(), type="heartbeat")
         self.timer.create(lambda: send(node_id(), type="heartbeat"))
         self.timer.start()
             
@@ -95,10 +96,15 @@ class Leader(SharedState):
     def appendEntries(self, msg):
         term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit = tuple(msg.body.message)
 
+        success = False
+        changeType = False
+
         if term > self.currentTerm: # if a valid leader contacts:
             self.currentTerm = term
+            changeType = True
 
             if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
+                success = True
                 
                 if prevLogIndex >= 0:
                     self.log = self.log[:prevLogIndex+1] + entries
@@ -108,13 +114,13 @@ class Leader(SharedState):
                     self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
                     self.lastApplied = self.commitIndex
                     
-                reply(msg, type="appendEntries_success", term=self.currentTerm)
-            else:
-                reply(msg, type="appendEntries_insuccess", term=self.currentTerm)
-
-            self.becomeFollower()
+        if success:
+            reply(msg, type="appendEntries_success", term=self.currentTerm)
         else:
             reply(msg, type="appendEntries_insuccess", term=self.currentTerm)
+
+        if changeType:
+            self.becomeFollower()
 
     def requestVote(self, msg):
         term = msg.body.term
@@ -126,7 +132,8 @@ class Leader(SharedState):
             if  msg.body.lastLogTerm < lastLogTerm or \
                 (msg.body.lastLogTerm == lastLogTerm and msg.body.lastLogIndex < len(self.log)):
                 self.votedFor = None
-                reply(msg, type='handleVote', term=self.currentTerm, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
+                #Não devíamos responder se não vai mudar em nada
+                reply(msg, type='handleVote', term=term, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
             else:
                 self.votedFor = msg.src
                 reply(msg, type='handleVote', term=term, voteGranted=True)
