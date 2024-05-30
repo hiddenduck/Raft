@@ -9,20 +9,20 @@ class Leader(SharedState):
         # Volatile state
         self.nextIndex = {}
         self.matchIndex = {}
-        for node in node_ids():
+        for node in self.node.node_ids():
             self.nextIndex[node] = self.currentTerm + 1
             self.matchIndex[node] = -1
         
-        send(node_id(), type="heartbeat")
-        self.timer.create(lambda: send(node_id(), type="heartbeat"))
+        self.node.send(self.node.node_id(), type="heartbeat")
+        self.timer.create(lambda: self.node.send(self.node.node_id(), type="heartbeat"))
         self.timer.start()
             
     
     def heartbeat(self, msg):
-        for dest_id in node_ids():
-            send(dest_id, type="appendEntries", message=(
+        for dest_id in self.node.node_ids():
+            self.node.send(dest_id, type="appendEntries", message=(
                     self.currentTerm, # term
-                    node_id(), #leaderId
+                    self.node.node_id(), #leaderId
                     -1, # prevLogIndex
                     self.currentTerm, # prevLogTerm
                     [], # entries[]
@@ -34,18 +34,18 @@ class Leader(SharedState):
         kv_store =self.kv_store
 
         if msg.body.key in kv_store:
-            reply(msg, type='read_ok', value=kv_store[msg.body.key])
+            self.node.reply(msg, type='read_ok', value=kv_store[msg.body.key])
         else:
-            reply(msg, type='error', code='20', text='key does not exist')
+            self.node.reply(msg, type='error', code='20', text='key does not exist')
     
     def write(self, msg):
         self.log.append((msg, self.currentTerm))
 
-        for dest_id in node_ids():
+        for dest_id in self.node.node_ids():
             if len(self.log) >= self.nextIndex[dest_id]:
-                send(dest_id, type="appendEntries", message=(
+                self.node.send(dest_id, type="appendEntries", message=(
                     self.currentTerm, # term
-                    node_id(), #leaderId
+                    self.node.node_id(), #leaderId
                     self.nextIndex[dest_id]-1, # prevLogIndex
                     self.log[self.nextIndex[dest_id]-1][1], # prevLogTerm
                     [self.log[i] for i in range(self.nextIndex[dest_id],len(self.log))], # entries[]
@@ -75,7 +75,7 @@ class Leader(SharedState):
                 count += 1
         
         if count > len(self.matchIndex.keys())/2 and candidate > self.commitIndex:
-            for toBeCommited in log[self.commitIndex:candidate]:
+            for toBeCommited in self.log[self.commitIndex:candidate]:
                 body = self.log[toBeCommited][0].body
                 self.kv_store[body.key] = body.value
             self.commitIndex = candidate
@@ -84,9 +84,9 @@ class Leader(SharedState):
         dest_id = msg.src
         
         self.nextIndex[dest_id] -= 1
-        send(dest_id, type="appendEntries", message=(
+        self.node.send(dest_id, type="appendEntries", message=(
             self.currentTerm, # term
-            node_id(), #leaderId
+            self.node.node_id(), #leaderId
             self.nextIndex[dest_id]-1, # prevLogIndex
             self.log[self.nextIndex[dest_id]-1][1], # prevLogTerm
             [self.log[i] for i in range(self.nextIndex[dest_id],len(self.log))], # entries[]
@@ -115,9 +115,9 @@ class Leader(SharedState):
                     self.lastApplied = self.commitIndex
                     
         if success:
-            reply(msg, type="appendEntries_success", term=self.currentTerm)
+            self.node.reply(msg, type="appendEntries_success", term=self.currentTerm)
         else:
-            reply(msg, type="appendEntries_insuccess", term=self.currentTerm)
+            self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm)
 
         if changeType:
             self.becomeFollower()
@@ -133,11 +133,11 @@ class Leader(SharedState):
                 (msg.body.lastLogTerm == lastLogTerm and msg.body.lastLogIndex < len(self.log)):
                 self.votedFor = None
                 #Não devíamos responder se não vai mudar em nada
-                reply(msg, type='handleVote', term=term, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
+                self.node.reply(msg, type='handleVote', term=term, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
             else:
                 self.votedFor = msg.src
-                reply(msg, type='handleVote', term=term, voteGranted=True)
+                self.node.reply(msg, type='handleVote', term=term, voteGranted=True)
 
             self.becomeFollower()
         else:
-            reply(msg, type="handleVote", term=self.currentTerm, voteGranted = False)
+            self.node.reply(msg, type="handleVote", term=self.currentTerm, voteGranted = False)

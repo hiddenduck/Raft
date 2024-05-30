@@ -18,103 +18,106 @@ from types import SimpleNamespace as sn
 
 logging.getLogger().setLevel(logging.DEBUG)
 
-_active_class = None
-_node_id = None
-_node_ids = []
-_msg_id = 0
-_handlers = {}
+class Node():
+    def __init__(self):
+        self._active_class = self
+        self._node_id = None
+        self._node_ids = []
+        self._msg_id = 0
 
-def node_id():
-    """Returns node id"""
-    return _node_id
+    def node_id(self):
+        """Returns node id"""
+        return self._node_id
 
-def node_ids():
-    """Returns list of ids of nodes in the cluster"""
-    return _node_ids
+    def node_ids(self):
+        """Returns list of ids of nodes in the cluster"""
+        return self._node_ids
 
-def log(data, end='\n'):
-    """Writes to stderr."""
-    print(data, file=sys.stderr, flush=True, end=end)
+    def log(self, data, end='\n'):
+        """Writes to stderr."""
+        print(data, file=sys.stderr, flush=True, end=end)
 
-def send(dest, body={}, /, **kwds):
-    """Sends message to dest."""
-    global _msg_id
-    _msg_id += 1
-    if isinstance(body, dict):
-        body = body.copy()
-    else:
-        body = dict(vars(body))
-    body.update(kwds, msg_id=_msg_id)
-    msg = dict(src=_node_id, dest=dest, body=body)
-    data = json.dumps(msg, default=vars)
-    log("Sent " + data)
-    print(data, flush=True)
+    def send(self, dest, body={}, /, **kwds):
+        """Sends message to dest."""
+        self._msg_id += 1
+        if isinstance(body, dict):
+            body = body.copy()
+        else:
+            body = dict(vars(body))
+        body.update(kwds, msg_id=self._msg_id)
+        msg = dict(src=self._node_id, dest=dest, body=body)
+        data = json.dumps(msg, default=vars)
+        self.log("Sent " + data)
+        print(data, flush=True)
 
-def reply(req, body={}, /, **kwds):
-    """Sends reply message to given request."""
-    send(req.src, body, in_reply_to=req.body.msg_id, **kwds)
+    def reply(self, req, body={}, /, **kwds):
+        """Sends reply message to given request."""
+        self.send(req.src, body, in_reply_to=req.body.msg_id, **kwds)
 
-def on(type, handler):
-    """Register handler for message type."""
-    _handlers[type] = handler
+    def on(self, type, handler):
+        """Register handler for message type."""
+        self._handlers[type] = handler
 
-def handler(func):
-    """Decorator: makes function as handler for namesake message type."""
-    _handlers[func.__name__] = func
-    return func
+    def init(self, msg):
+        # in order to avoid circular imports, we need to import inside the function
+        from Follower import Follower
+        from SharedState import SharedState
+        """Default handler for init message."""
+        self._node_id = msg.body.node_id
+        self._node_ids = [id for id in msg.body.node_ids if id != self._node_id]
 
-@handler
-def init(msg):
-    # in order to avoid circular imports, we need to import inside the function
-    from Follower import Follower
-    from SharedState import SharedState
-    """Default handler for init message."""
-    global _node_id, _node_ids
-    _node_id = msg.body.node_id
-    _node_ids = [id for id in msg.body.node_ids if id != _node_id]
+        logging.info('node %s initialized', self._node_id)
 
-    logging.info('node %s initialized', _node_id)
+        self.setActiveClass(Follower(SharedState()))
+        self._active_class.node = self
 
-    setActiveClass(Follower(SharedState()))
+        logging.info('Follower Created')
+        
+        self.reply(msg, type='init_ok')
 
-    logging.info('Follower Created')
-    
-    reply(msg, type='init_ok')
+    def setActiveClass(self, new):
+        self._active_class = new
 
-def setActiveClass(new):
-    global _active_class
-    #tmp = _active_class
-    _active_class = new
-    #return tmp
+    def getActiveClass(self):
+        return self._active_class
 
-def getActiveClass():
-    return _active_class
-
-def _receive():
-    data = sys.stdin.readline()
-    if data:
-        log("Received " + data, end='')
-        return json.loads(data, object_hook=lambda x: sn(**x))
-    else:
-        return None
-
-def receive():
-    """Returns next message received with no handler defined.
-
-    Messages with handlers defined are handled and not returned.
-    Returns None on EOF.
-    """
-    while True:
-        msg = _receive()
-        if msg is None:
+    def _receive(self):
+        data = sys.stdin.readline()
+        if data:
+            self.log("Received " + data, end='')
+            return json.loads(data, object_hook=lambda x: sn(**x))
+        else:
             return None
-        elif (t := msg.body.type) in _handlers:
-            _handlers[t](msg)
-        elif (fun := getattr(_active_class, msg.body.type)) != None:
-            fun(msg)
-        #Não devolver a mensagem de modo a não crashar nenhum nodo
-        #else:
-        #    return msg
+
+    def receive(self):
+        """Returns next message received with no handler defined.
+
+        Messages with handlers defined are handled and not returned.
+        Returns None on EOF.
+        """
+        while True:
+            msg = self._receive()
+            if msg is None:
+                return None
+            elif (fun := getattr(self._active_class, msg.body.type)) != None:
+                fun(msg)
+            #Não devolver a mensagem de modo a não crashar nenhum nodo
+            #else:
+            #    return msg
         
 if __name__ == "__main__":
-    receive()
+    node = Node()
+    node.receive()
+
+{"id": 2,"src": "c2", "dest": "n0","body": { "type": "init","node_id": "n0","node_ids": ["n0", "n1", "n2"],"msg_id": 1 }}
+
+{
+  "id": 2,
+  "src": "c2",
+  "dest": "n0",
+  "body": {
+    "type": "read",
+    "key": "string",
+    "msg_id": 2
+  }
+}

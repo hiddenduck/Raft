@@ -19,6 +19,8 @@ class SharedState:
         # Other
         self.timer = Node_Timer(150, 300)
 
+        self.node = None
+
     def getState(self):
         return self
     
@@ -34,14 +36,16 @@ class SharedState:
         # Volatile state
         self.commitIndex = sharedState.commitIndex
         self.lastApplied = sharedState.lastApplied
+
+        self.node = sharedState.node
     
     def read(self, msg):
-        reply(msg, type='error', code='11', text='not the leader')
+        self.node.reply(msg, type='error', code='11', text='not the leader')
 
     def write(self, msg):
-        reply(msg, type='error', code='11', text='not the leader')
+        self.node.reply(msg, type='error', code='11', text='not the leader')
 
     def cas(self, msg):
-        reply(msg, type='error', code='11', text='not the leader')
+        self.node.reply(msg, type='error', code='11', text='not the leader')
 
     

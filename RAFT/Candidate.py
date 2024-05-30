@@ -8,18 +8,18 @@ class Candidate(SharedState):
         # Set State
         super().changeState(sharedState)
         # Candidate 
-        self.voters = {node_id()}
-        self.votedFor = node_id()
+        self.voters = {self.node.node_id()}
+        self.votedFor = self.node.node_id()
         self.currentTerm += 1
         self.startRequestVote()
 
-        self.timer.create(lambda: send(node_id(), type="resetElection"))
+        self.timer.create(lambda: self.node.send(self.node.node_id(), type="resetElection"))
         self.timer.start()
 
     def startRequestVote(self):
         lenLog = len(self.log)
-        for dest_id in node_ids():
-            send(dest_id, type="requestVote", term=self.currentTerm, lastLogIndex = lenLog, lastLogTerm = self.log[-1][1] if lenLog!=0 else 0)
+        for dest_id in self.node.node_ids():
+            self.node.send(dest_id, type="requestVote", term=self.currentTerm, lastLogIndex = lenLog, lastLogTerm = self.log[-1][1] if lenLog!=0 else 0)
     
     def requestVote(self, msg):
         term = msg.body.term
@@ -32,22 +32,22 @@ class Candidate(SharedState):
                 (msg.body.lastLogTerm == lastLogTerm and msg.body.lastLogIndex < len(self.log)):
                 self.votedFor = None
                 #Não devíamos responder se não vai mudar em nada
-                reply(msg, type='handleVote', term=term, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
+                self.node.reply(msg, type='handleVote', term=term, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
             else:
                 self.votedFor = msg.src
-                reply(msg, type='handleVote', term=term, voteGranted=True)
+                self.node.reply(msg, type='handleVote', term=term, voteGranted=True)
 
             self.becomeFollower()
         else:
             #Ligeiramente diferente dos votos dos líderes, só avisa se o seu termo for maior
-            reply(msg, type="handleVote", term=self.currentTerm, voteGranted = False)
+            self.node.reply(msg, type="handleVote", term=self.currentTerm, voteGranted = False)
 
     def handleVote(self, msg):
         if msg.body.voteGranted:
             self.voters.add(msg.src)
 
-            if len(self.voters) >= len(node_ids()) / 2: # case (a): a Candidate received majority of votes
-                setActiveClass(Leader())
+            if len(self.voters) >= len(self.node.node_ids()) / 2: # case (a): a Candidate received majority of votes
+                self.node.setActiveClass(Leader())
 
         elif self.currentTerm < msg.body.term:
             self.currentTerm = msg.body.term
@@ -75,17 +75,17 @@ class Candidate(SharedState):
                     self.lastApplied = self.commitIndex
                     
         if success:
-            reply(msg, type="appendEntries_success", term=self.currentTerm)
+            self.node.reply(msg, type="appendEntries_success", term=self.currentTerm)
         else:
-            reply(msg, type="appendEntries_insuccess", term=self.currentTerm)
+            self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm)
 
         if changeType:
             self.becomeFollower()
 
     #Estas funções têm de ser sempre as últimas a serem invocadas num método (garantir que houve troca)
-    def becomeFollower():
+    def becomeFollower(self):
         from Follower import Follower
-        setActiveClass(Follower(super().getState()))
+        self.node.setActiveClass(Follower(super().getState()))
 
     def resetElection(self, msg):
-        setActiveClass(Candidate(super().getState()))
+        self.node.setActiveClass(Candidate(super().getState()))

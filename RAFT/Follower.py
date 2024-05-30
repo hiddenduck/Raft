@@ -1,5 +1,6 @@
 from SharedState import SharedState
 from Candidate import Candidate
+import node
 from node import *
 
 class Follower(SharedState):
@@ -8,7 +9,7 @@ class Follower(SharedState):
         # Set State
         super().changeState(sharedState)
 
-        self.timer.create(lambda: send(node_id(), type="startElection"))
+        self.timer.create(lambda: self.node.send(self.node.node_id(), type="startElection"))
         self.timer.start()
 
         if leaderMsg:
@@ -16,16 +17,16 @@ class Follower(SharedState):
     
     # Maelstrom
     def read(self, msg):
-        reply(msg, type='error', code='11', text='not the leader')
+        self.node.reply(msg, type='error', code='11', text='not the leader')
 
     def write(self, msg):
-        reply(msg, type='error', code='11', text='not the leader')
+        self.node.reply(msg, type='error', code='11', text='not the leader')
 
     def cas(self, msg):
-        reply(msg, type='error', code='11', text='not the leader')
+        self.node.reply(msg, type='error', code='11', text='not the leader')
 
     def startElection(self, msg):
-        setActiveClass(Candidate(super().getState()))
+        self.node.setActiveClass(Candidate(super().getState()))
 
     def requestVote(self, msg):
         term = msg.body.term
@@ -35,11 +36,11 @@ class Follower(SharedState):
             (term == self.currentTerm and self.votedFor != None and self.votedFor != msg.src) or \
             msg.body.lastLogTerm < lastLogTerm or \
             (msg.body.lastLogTerm == lastLogTerm and msg.body.lastLogIndex < len(self.log)):
-            reply(msg, type='handleVote', term=self.currentTerm, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
+            self.node.reply(msg, type='handleVote', term=self.currentTerm, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
         else:
             self.votedFor = msg.src
             self.currentTerm = term
-            reply(msg, type='handleVote', term=term, voteGranted=True)
+            self.node.reply(msg, type='handleVote', term=term, voteGranted=True)
 
 
     def applyLogEntries(self, entries):
@@ -67,6 +68,6 @@ class Follower(SharedState):
                     self.lastApplied = self.commitIndex
 
         if success:
-            reply(msg, type="appendEntries_success", term=self.currentTerm)
+            self.node.reply(msg, type="appendEntries_success", term=self.currentTerm)
         else:
-            reply(msg, type="appendEntries_insuccess", term=self.currentTerm)
+            self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm)
