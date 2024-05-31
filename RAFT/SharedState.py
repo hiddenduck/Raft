@@ -3,7 +3,7 @@ from node import *
 from Node_Timer import Node_Timer
 
 class SharedState:
-    def __init__(self):
+    def __init__(self, node=None):
         # Lin-kv Store
         self.kv_store = dict()
 
@@ -17,9 +17,9 @@ class SharedState:
         self.lastApplied = -1
 
         # Other
-        self.timer = Node_Timer(150, 300)
+        self.timer = Node_Timer(0.150, 0.300)
 
-        self.node = None
+        self.node = node
 
     def getState(self):
         return self
@@ -30,8 +30,8 @@ class SharedState:
 
         # Persistent state
         self.currentTerm = sharedState.currentTerm
-        self.votedFor = None
-        self.log = sharedState.currentTerm
+        self.votedFor = sharedState.votedFor
+        self.log = sharedState.log
 
         # Volatile state
         self.commitIndex = sharedState.commitIndex

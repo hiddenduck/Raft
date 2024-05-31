@@ -8,17 +8,30 @@ class Node_Timer:
         self.a = a
         self.b = b
         self.timer = None
+        self.started = False
+        self.func = None
+        self.args = None
 
-    def create(self, func, /, *args, **kwargs):
+    def create(self, func=None, /, *args):
         self.stop()
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            self.timer = Timer(uniform(self.a, self.b), lambda: executor.submit(func, args, kwargs))
+        if func != None:
+            self.func = func
+        else:
+            func = self.func
+        if args:
+            self.args = args
+        else:
+            args = self.args
+
+        self.timer = Timer(uniform(self.a, self.b), lambda *args: func(*args), args)
 
     def start(self):
         self.timer.start()
+        self.started = True
 
     def stop(self):
-        if self.timer != None:
+        if self.timer != None and self.started:
+            self.started = False
             self.timer.cancel()
 
     def reset(self):

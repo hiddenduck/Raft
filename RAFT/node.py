@@ -68,8 +68,7 @@ class Node():
 
         logging.info('node %s initialized', self._node_id)
 
-        self.setActiveClass(Follower(SharedState()))
-        self._active_class.node = self
+        self.setActiveClass(Follower(SharedState(self)))
 
         logging.info('Follower Created')
         
@@ -99,7 +98,7 @@ class Node():
             msg = self._receive()
             if msg is None:
                 return None
-            elif (fun := getattr(self._active_class, msg.body.type)) != None:
+            elif (fun := getattr(self._active_class, msg.body.type, None)) != None:
                 fun(msg)
             #Não devolver a mensagem de modo a não crashar nenhum nodo
             #else:

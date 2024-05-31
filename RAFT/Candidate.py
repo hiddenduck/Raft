@@ -13,7 +13,7 @@ class Candidate(SharedState):
         self.currentTerm += 1
         self.startRequestVote()
 
-        self.timer.create(lambda: self.node.send(self.node.node_id(), type="resetElection"))
+        self.timer.create(lambda node: node.send(node.node_id(), type="resetElection"), self.node)
         self.timer.start()
 
     def startRequestVote(self):
@@ -27,17 +27,16 @@ class Candidate(SharedState):
         if term > self.currentTerm:
             self.currentTerm = term
 
-            _, lastLogTerm = self.log[-1]
-            if  msg.body.lastLogTerm < lastLogTerm or \
-                (msg.body.lastLogTerm == lastLogTerm and msg.body.lastLogIndex < len(self.log)):
-                self.votedFor = None
+            if  len(self.log) > 0 and \
+                (msg.body.lastLogTerm < self.log[-1][1] or \
+                (msg.body.lastLogTerm == self.log[-1][1] and msg.body.lastLogIndex < len(self.log))):
                 #Não devíamos responder se não vai mudar em nada
                 self.node.reply(msg, type='handleVote', term=term, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
+                self.becomeFollower()
             else:
-                self.votedFor = msg.src
                 self.node.reply(msg, type='handleVote', term=term, voteGranted=True)
+                self.becomeFollower(msg.src)
 
-            self.becomeFollower()
         else:
             #Ligeiramente diferente dos votos dos líderes, só avisa se o seu termo for maior
             self.node.reply(msg, type="handleVote", term=self.currentTerm, voteGranted = False)
@@ -47,7 +46,7 @@ class Candidate(SharedState):
             self.voters.add(msg.src)
 
             if len(self.voters) >= len(self.node.node_ids()) / 2: # case (a): a Candidate received majority of votes
-                self.node.setActiveClass(Leader())
+                self.becomeLeader()
 
         elif self.currentTerm < msg.body.term:
             self.currentTerm = msg.body.term
@@ -68,6 +67,8 @@ class Candidate(SharedState):
                 
                 if prevLogIndex >= 0:
                     self.log = self.log[:prevLogIndex+1] + entries
+                else:
+                    self.log = entries
             
                 if leaderCommit > self.commitIndex:
                     self.commitIndex = min(leaderCommit, len(self.log)-1)
@@ -75,17 +76,22 @@ class Candidate(SharedState):
                     self.lastApplied = self.commitIndex
                     
         if success:
-            self.node.reply(msg, type="appendEntries_success", term=self.currentTerm)
+            self.node.reply(msg, type="appendEntries_success", term=self.currentTerm, nextIndex=len(self.log))
         else:
-            self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm)
+            self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, nextIndex=len(self.log))
 
         if changeType:
             self.becomeFollower()
 
     #Estas funções têm de ser sempre as últimas a serem invocadas num método (garantir que houve troca)
-    def becomeFollower(self):
+    def becomeFollower(self, votedFor=None):
         from Follower import Follower
+        self.votedFor=votedFor
         self.node.setActiveClass(Follower(super().getState()))
+
+    def becomeLeader(self):
+        from Leader import Leader
+        self.node.setActiveClass(Leader(super().getState()))
 
     def resetElection(self, msg):
         self.node.setActiveClass(Candidate(super().getState()))

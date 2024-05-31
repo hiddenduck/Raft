@@ -1,33 +1,37 @@
 from SharedState import SharedState
 from node import *
 
+def repeatHeartbeat(node):
+    node.send(node.node_id(), type="heartbeat")
+
 class Leader(SharedState):
     def __init__(self, sharedState):
         super().__init__()
         # set State
         super().changeState(sharedState)
         # Volatile state
+        self.votedFor = None
         self.nextIndex = {}
         self.matchIndex = {}
         for node in self.node.node_ids():
-            self.nextIndex[node] = self.currentTerm + 1
+            self.nextIndex[node] = len(self.log)
             self.matchIndex[node] = -1
         
         self.node.send(self.node.node_id(), type="heartbeat")
-        self.timer.create(lambda: self.node.send(self.node.node_id(), type="heartbeat"))
+        self.timer.create(lambda node: repeatHeartbeat(node), self.node)
         self.timer.start()
-            
     
     def heartbeat(self, msg):
         for dest_id in self.node.node_ids():
             self.node.send(dest_id, type="appendEntries", message=(
                     self.currentTerm, # term
                     self.node.node_id(), #leaderId
-                    -1, # prevLogIndex
-                    self.currentTerm, # prevLogTerm
+                    len(self.log)-1, # prevLogIndex
+                    self.log[self.nextIndex[dest_id]-1][1] if self.nextIndex[dest_id]-1 >= 0 else -1, # prevLogTerm
                     [], # entries[]
                     self.commitIndex) # leaderCommit
                 )
+        self.timer.reset()
 
     def read(self, msg):
 
@@ -47,13 +51,13 @@ class Leader(SharedState):
                     self.currentTerm, # term
                     self.node.node_id(), #leaderId
                     self.nextIndex[dest_id]-1, # prevLogIndex
-                    self.log[self.nextIndex[dest_id]-1][1], # prevLogTerm
+                    self.log[self.nextIndex[dest_id]-1][1] if self.nextIndex[dest_id]-1 >= 0 else -1, # prevLogTerm
                     [self.log[i] for i in range(self.nextIndex[dest_id],len(self.log))], # entries[]
                     self.commitIndex) # leaderCommit
                 )
                 
     def appendEntries_success(self, msg):
-        self.nextIndex[msg.src] = msg.body.nextIndex
+        self.nextIndex[msg.src]  = msg.body.nextIndex
         self.matchIndex[msg.src] = msg.body.nextIndex
 
         # Detect Majority
@@ -76,22 +80,27 @@ class Leader(SharedState):
         
         if count > len(self.matchIndex.keys())/2 and candidate > self.commitIndex:
             for toBeCommited in self.log[self.commitIndex:candidate]:
-                body = self.log[toBeCommited][0].body
+                body = toBeCommited[0].body
                 self.kv_store[body.key] = body.value
             self.commitIndex = candidate
 
     def appendEntries_insuccess(self, msg):
         dest_id = msg.src
         
-        self.nextIndex[dest_id] -= 1
-        self.node.send(dest_id, type="appendEntries", message=(
-            self.currentTerm, # term
-            self.node.node_id(), #leaderId
-            self.nextIndex[dest_id]-1, # prevLogIndex
-            self.log[self.nextIndex[dest_id]-1][1], # prevLogTerm
-            [self.log[i] for i in range(self.nextIndex[dest_id],len(self.log))], # entries[]
-            self.commitIndex) # leaderCommit
-            )
+        if msg.body.term <= self.currentTerm:
+            self.nextIndex[dest_id] -= 1
+            self.node.send(dest_id, type="appendEntries", message=(
+                self.currentTerm, # term
+                self.node.node_id(), #leaderId
+                self.nextIndex[dest_id]-1, # prevLogIndex
+                self.log[self.nextIndex[dest_id]-1][1] if self.nextIndex[dest_id]-1 >= 0 else -1, # prevLogTerm
+                [self.log[i] for i in range(self.nextIndex[dest_id],len(self.log))], # entries[]
+                self.commitIndex) # leaderCommit
+                )
+        else:
+            self.currentTerm = msg.body.term
+            self.becomeFollower()
+
 
     def appendEntries(self, msg):
         term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit = tuple(msg.body.message)
@@ -108,6 +117,8 @@ class Leader(SharedState):
                 
                 if prevLogIndex >= 0:
                     self.log = self.log[:prevLogIndex+1] + entries
+                else:
+                    self.log = entries
             
                 if leaderCommit > self.commitIndex:
                     self.commitIndex = min(leaderCommit, len(self.log)-1)
@@ -115,9 +126,9 @@ class Leader(SharedState):
                     self.lastApplied = self.commitIndex
                     
         if success:
-            self.node.reply(msg, type="appendEntries_success", term=self.currentTerm)
+            self.node.reply(msg, type="appendEntries_success", term=self.currentTerm, nextIndex=len(self.log))
         else:
-            self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm)
+            self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, nextIndex=len(self.log))
 
         if changeType:
             self.becomeFollower()
@@ -128,10 +139,9 @@ class Leader(SharedState):
         if term > self.currentTerm:
             self.currentTerm = term
 
-            _, lastLogTerm = self.log[-1]
-            if  msg.body.lastLogTerm < lastLogTerm or \
-                (msg.body.lastLogTerm == lastLogTerm and msg.body.lastLogIndex < len(self.log)):
-                self.votedFor = None
+            if  len(self.log) > 0 and \
+                (msg.body.lastLogTerm < self.log[-1][1] or \
+                (msg.body.lastLogTerm == self.log[-1][1] and msg.body.lastLogIndex < len(self.log))):
                 #Não devíamos responder se não vai mudar em nada
                 self.node.reply(msg, type='handleVote', term=term, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
             else:
@@ -141,3 +151,7 @@ class Leader(SharedState):
             self.becomeFollower()
         else:
             self.node.reply(msg, type="handleVote", term=self.currentTerm, voteGranted = False)
+
+    def becomeFollower(self):
+        from Follower import Follower
+        self.node.setActiveClass(Follower(super().getState()))
