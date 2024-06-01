@@ -7,6 +7,9 @@ def repeatHeartbeat(node):
 class Leader(SharedState):
     def __init__(self, sharedState):
         super().__init__()
+
+        # leader only
+        self.msgLog = [] # to store Maelstrom msg's to allow the leader to reply
         # set State
         super().changeState(sharedState)
         # Volatile state
@@ -44,6 +47,7 @@ class Leader(SharedState):
     
     def write(self, msg):
         self.log.append(((msg.body.key, msg.body.value), self.currentTerm))
+        self.msgLog.append(msg)
 
         for dest_id in self.node.node_ids():
             if len(self.log) >= self.nextIndex[dest_id]:
@@ -55,6 +59,15 @@ class Leader(SharedState):
                     [self.log[i] for i in range(self.nextIndex[dest_id],len(self.log))], # entries[]
                     self.commitIndex) # leaderCommit
                 )
+
+    def cas(self, msg):
+        if msg.body.key not in self.kv_store:
+            self.node.reply(msg, type='error', code='20', text='key does not exist')
+        elif self.kv_store[msg.body.key] == getattr(msg.body, 'from'):
+            msg.body.value = msg.body.to # in order to reuse write
+            self.write(msg)
+        else:
+            self.node.reply(msg, type='error', code='22', text='value has changed')
                 
     def appendEntries_success(self, msg):
         self.nextIndex[msg.src]  = msg.body.nextIndex
@@ -79,9 +92,11 @@ class Leader(SharedState):
                 count += 1
         
         if count > len(self.matchIndex.keys())/2 and candidate > self.commitIndex:
-            for toBeCommited in self.log[self.commitIndex:candidate]:
+            for i,toBeCommited in enumerate(self.log[self.commitIndex:candidate], start=self.commitIndex):
                 body = toBeCommited[0].body
                 self.kv_store[body.key] = body.value
+                client_msg = self.msgLog[i]
+                self.node.reply(client_msg, type="write_ok" if client_msg.body.type == "write" else "cas_ok")
             self.commitIndex = candidate
 
     def appendEntries_insuccess(self, msg):
@@ -101,6 +116,10 @@ class Leader(SharedState):
             self.currentTerm = msg.body.term
             self.becomeFollower()
 
+
+    def applyLogEntries(self, entries):
+        for ((key, value), _) in entries:
+            self.kv_store[key] = value
 
     def appendEntries(self, msg):
         term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit = tuple(msg.body.message)
