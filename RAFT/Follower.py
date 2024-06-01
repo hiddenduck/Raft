@@ -43,8 +43,8 @@ class Follower(SharedState):
 
 
     def applyLogEntries(self, entries):
-        for ((key, value), _) in entries:
-            self.kv_store[key] = value
+        for (msg, _) in entries:
+            self.kv_store[msg.body.key] = msg.body.value
 
     def appendEntries(self, msg):
         term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit = tuple(msg.body.message)
