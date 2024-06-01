@@ -41,11 +41,6 @@ class Follower(SharedState):
             self.currentTerm = term
             self.node.reply(msg, type='handleVote', term=term, voteGranted=True)
 
-
-    def applyLogEntries(self, entries):
-        for (msg, _) in entries:
-            self.kv_store[msg.body.key] = msg.body.value
-
     def appendEntries(self, msg):
         term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit = tuple(msg.body.message)
 

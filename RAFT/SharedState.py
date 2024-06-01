@@ -48,4 +48,7 @@ class SharedState:
     def cas(self, msg):
         self.node.reply(msg, type='error', code='11', text='not the leader')
 
+    def applyLogEntries(self, entries):
+        for (msg, _) in entries:
+            self.kv_store[msg.body.key] = msg.body.value
     

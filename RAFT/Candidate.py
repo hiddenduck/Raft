@@ -45,7 +45,7 @@ class Candidate(SharedState):
         if msg.body.voteGranted:
             self.voters.add(msg.src)
 
-            if len(self.voters) >= len(self.node.node_ids()) / 2: # case (a): a Candidate received majority of votes
+            if len(self.voters) >= (len(self.node.node_ids())+1) / 2.0: # case (a): a Candidate received majority of votes
                 self.becomeLeader()
 
         elif self.currentTerm < msg.body.term:

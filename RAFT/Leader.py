@@ -27,7 +27,7 @@ class Leader(SharedState):
                     self.currentTerm, # term
                     self.node.node_id(), #leaderId
                     len(self.log)-1, # prevLogIndex
-                    self.log[self.nextIndex[dest_id]-1][1] if self.nextIndex[dest_id]-1 >= 0 else -1, # prevLogTerm
+                    self.log[len(self.log)-1][1] if len(self.log)-1 >= 0 else -1, # prevLogTerm
                     [], # entries[]
                     self.commitIndex) # leaderCommit
                 )
@@ -91,7 +91,7 @@ class Leader(SharedState):
             for toBeCommited in self.log[self.commitIndex:candidate]:
                 body = toBeCommited[0].body
                 self.kv_store[body.key] = body.value
-                self.node.reply(toBeCommited, type="write_ok" if body.type == "write" else "cas_ok")
+                self.node.reply(toBeCommited[0], type="write_ok" if body.type == "write" else "cas_ok")
             self.commitIndex = candidate
 
     def appendEntries_insuccess(self, msg):
