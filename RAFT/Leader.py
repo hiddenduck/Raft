@@ -43,7 +43,7 @@ class Leader(SharedState):
             self.node.reply(msg, type='error', code='20', text='key does not exist')
     
     def write(self, msg):
-        self.log.append((msg, self.currentTerm))
+        self.log.append(((msg.body.key, msg.body.value), self.currentTerm))
 
         for dest_id in self.node.node_ids():
             if len(self.log) >= self.nextIndex[dest_id]:
