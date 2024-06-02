@@ -65,10 +65,18 @@ class Leader(SharedState):
     def write_redirect(self, msg):
         self.write(msg.body.msg)
 
+    def checkCas(self, newFrom, key, log):
+        for entry in reversed(log):
+            if entry[0].body.key == key:
+                if entry[0].body.value == newFrom:
+                    return True
+                else:
+                    return False
+
     def cas(self, msg):
         if msg.body.key not in self.kv_store:
             self.node.reply(msg, type='error', code='20', text='key does not exist')
-        elif self.kv_store[msg.body.key] == getattr(msg.body, 'from'):
+        elif self.checkCas(getattr(msg.body, 'from'), msg.body.key, self.log):
             msg.body.value = msg.body.to # in order to reuse write
             self.write(msg)
         else:
@@ -79,7 +87,7 @@ class Leader(SharedState):
                 
     def appendEntries_success(self, msg):
         self.nextIndex[msg.src]  = msg.body.nextIndex
-        self.matchIndex[msg.src] = msg.body.nextIndex
+        self.matchIndex[msg.src] = msg.body.nextIndex-1
 
         # Detect Majority
 
@@ -99,8 +107,8 @@ class Leader(SharedState):
             if self.matchIndex[replica] == candidate:
                 count += 1
         
-        if count > len(self.matchIndex.keys())/2 and candidate > self.commitIndex:
-            for toBeCommited in self.log[self.commitIndex:candidate]:
+        if count > len(self.matchIndex.keys())/2 and candidate > self.commitIndex and self.log[candidate][1] == self.currentTerm:
+            for toBeCommited in self.log[self.commitIndex:candidate+1]:
                 body = toBeCommited[0].body
                 self.kv_store[body.key] = body.value
                 self.node.reply(toBeCommited[0], type="write_ok" if body.type == "write" else "cas_ok")
@@ -110,7 +118,7 @@ class Leader(SharedState):
         dest_id = msg.src
         
         if msg.body.term <= self.currentTerm:
-            self.nextIndex[dest_id] -= 1
+            self.nextIndex[dest_id] = self.nextIndex[dest_id] - 1 if self.nextIndex[dest_id] > 0 else 0
             self.node.send(dest_id, type="appendEntries", message=(
                 self.currentTerm, # term
                 self.node.node_id(), #leaderId
@@ -139,6 +147,7 @@ class Leader(SharedState):
             self.timer.stop()
             changeType = True
             self.currentTerm = term
+            self.votedFor = msg.src
 
             if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
                 success = True
@@ -183,7 +192,6 @@ class Leader(SharedState):
 
     def becomeFollower(self):
         from Follower import Follower
-        self.timer.stop()
         self.timer.a = 0.150
         self.timer.b = 0.300
         self.node.setActiveClass(Follower(super().getState()))

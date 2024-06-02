@@ -15,6 +15,7 @@ class Follower(SharedState):
             self.appendEntries(leaderMsg)        
     
     def startElection(self, msg):
+        self.timer.stop()
         self.node.setActiveClass(Candidate(super().getState()))
 
     def requestVote(self, msg):
@@ -41,6 +42,7 @@ class Follower(SharedState):
         if term >= self.currentTerm:
             self.timer.stop()
             self.currentTerm = term
+            self.votedFor = msg.src
 
             if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
                 success = True
@@ -55,9 +57,10 @@ class Follower(SharedState):
                     self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
                     self.lastApplied = self.commitIndex
 
+            self.timer.reset()
+
         if success:
             self.node.reply(msg, type="appendEntries_success", term=self.currentTerm, nextIndex=len(self.log))
         else:
             self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, nextIndex=len(self.log))
 
-        self.timer.reset()

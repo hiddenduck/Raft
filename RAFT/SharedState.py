@@ -6,7 +6,8 @@ class SharedState:
     def __init__(self, node=None):
         # Lin-kv Store
         self.kv_store = dict()
-
+        self.kv_log_store = dict()
+        
         # Persistent state
         self.currentTerm = 0
         self.votedFor = None
