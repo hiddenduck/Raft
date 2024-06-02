@@ -14,16 +14,6 @@ class Follower(SharedState):
         if leaderMsg:
             self.appendEntries(leaderMsg)        
     
-    # Maelstrom
-    def read(self, msg):
-        self.node.reply(msg, type='error', code='11', text='not the leader')
-
-    def write(self, msg):
-        self.node.reply(msg, type='error', code='11', text='not the leader')
-
-    def cas(self, msg):
-        self.node.reply(msg, type='error', code='11', text='not the leader')
-
     def startElection(self, msg):
         self.node.setActiveClass(Candidate(super().getState()))
 

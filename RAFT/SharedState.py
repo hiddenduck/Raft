@@ -40,13 +40,22 @@ class SharedState:
         self.node = sharedState.node
     
     def read(self, msg):
-        self.node.reply(msg, type='error', code='11', text='not the leader')
+        if self.votedFor != None and self.votedFor != self.node.node_id():
+            self.node.send(self.votedFor, type='read_redirect', msg=msg)
+        else:
+            self.node.reply(msg, type='error', code='11', text='not the leader')
 
     def write(self, msg):
-        self.node.reply(msg, type='error', code='11', text='not the leader')
+        if self.votedFor != None and self.votedFor != self.node.node_id():
+            self.node.send(self.votedFor, type='write_redirect', msg=msg)
+        else:
+            self.node.reply(msg, type='error', code='11', text='not the leader')
 
     def cas(self, msg):
-        self.node.reply(msg, type='error', code='11', text='not the leader')
+        if self.votedFor != None and self.votedFor != self.node.node_id():
+            self.node.send(self.votedFor, type='cas_redirect', msg=msg)
+        else:
+            self.node.reply(msg, type='error', code='11', text='not the leader')
 
     def applyLogEntries(self, entries):
         for (msg, _) in entries:

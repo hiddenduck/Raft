@@ -44,6 +44,9 @@ class Leader(SharedState):
             self.node.reply(msg, type='read_ok', value=kv_store[msg.body.key])
         else:
             self.node.reply(msg, type='error', code='20', text='key does not exist')
+
+    def read_redirect(self, msg):
+        self.read(msg.body.msg)
     
     def write(self, msg):
         self.log.append((msg, self.currentTerm))
@@ -58,6 +61,9 @@ class Leader(SharedState):
                     [self.log[i] for i in range(self.nextIndex[dest_id],len(self.log))], # entries[]
                     self.commitIndex) # leaderCommit
                 )
+    
+    def write_redirect(self, msg):
+        self.write(msg.body.msg)
 
     def cas(self, msg):
         if msg.body.key not in self.kv_store:
@@ -67,6 +73,9 @@ class Leader(SharedState):
             self.write(msg)
         else:
             self.node.reply(msg, type='error', code='22', text='value has changed')
+
+    def cas_redirect(self, msg):
+        self.cas(msg.body.msg)
                 
     def appendEntries_success(self, msg):
         self.nextIndex[msg.src]  = msg.body.nextIndex
