@@ -18,17 +18,20 @@ class Leader(SharedState):
             self.matchIndex[node] = -1
         
         self.node.send(self.node.node_id(), type="heartbeat")
+        self.timer.a = 0.05
+        self.timer.b = 0.05
         self.timer.create(lambda node: repeatHeartbeat(node), self.node)
         self.timer.start()
     
     def heartbeat(self, msg):
         for dest_id in self.node.node_ids():
-            self.node.send(dest_id, type="appendEntries", message=(
+            if len(self.log) >= self.nextIndex[dest_id]:
+                self.node.send(dest_id, type="appendEntries", message=(
                     self.currentTerm, # term
                     self.node.node_id(), #leaderId
-                    len(self.log)-1, # prevLogIndex
-                    self.log[len(self.log)-1][1] if len(self.log)-1 >= 0 else -1, # prevLogTerm
-                    [], # entries[]
+                    self.nextIndex[dest_id]-1, # prevLogIndex
+                    self.log[self.nextIndex[dest_id]-1][1] if self.nextIndex[dest_id]-1 >= 0 else -1, # prevLogTerm
+                    [self.log[i] for i in range(self.nextIndex[dest_id],len(self.log))], # entries[]
                     self.commitIndex) # leaderCommit
                 )
         self.timer.reset()
@@ -108,6 +111,7 @@ class Leader(SharedState):
                 self.commitIndex) # leaderCommit
                 )
         else:
+            self.timer.stop()
             self.currentTerm = msg.body.term
             self.becomeFollower()
 
@@ -123,8 +127,9 @@ class Leader(SharedState):
         changeType = False
 
         if term > self.currentTerm: # if a valid leader contacts:
-            self.currentTerm = term
+            self.timer.stop()
             changeType = True
+            self.currentTerm = term
 
             if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
                 success = True
@@ -151,6 +156,7 @@ class Leader(SharedState):
         term = msg.body.term
 
         if term > self.currentTerm:
+            self.timer.stop()
             self.currentTerm = term
 
             if  len(self.log) > 0 and \
@@ -168,4 +174,7 @@ class Leader(SharedState):
 
     def becomeFollower(self):
         from Follower import Follower
+        self.timer.stop()
+        self.timer.a = 0.150
+        self.timer.b = 0.300
         self.node.setActiveClass(Follower(super().getState()))

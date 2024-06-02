@@ -34,6 +34,7 @@ class Candidate(SharedState):
                 self.node.reply(msg, type='handleVote', term=term, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
                 self.becomeFollower()
             else:
+                self.timer.stop()
                 self.node.reply(msg, type='handleVote', term=term, voteGranted=True)
                 self.becomeFollower(msg.src)
 
@@ -45,10 +46,11 @@ class Candidate(SharedState):
         if msg.body.voteGranted:
             self.voters.add(msg.src)
 
-            if len(self.voters) >= (len(self.node.node_ids())+1) / 2.0: # case (a): a Candidate received majority of votes
+            if len(self.voters) > (len(self.node.node_ids())+1) / 2.0: # case (a): a Candidate received majority of votes
                 self.becomeLeader()
 
         elif self.currentTerm < msg.body.term:
+            self.timer.stop()
             self.currentTerm = msg.body.term
             self.becomeFollower()
 
@@ -59,8 +61,9 @@ class Candidate(SharedState):
         changeType = False
 
         if term >= self.currentTerm: # if a valid leader contacts:
-            self.currentTerm = term
+            self.timer.stop()
             changeType = True
+            self.currentTerm = term
 
             if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
                 success = True

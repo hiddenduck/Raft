@@ -37,9 +37,11 @@ class Follower(SharedState):
             (msg.body.lastLogTerm == self.log[-1][1] and msg.body.lastLogIndex < len(self.log)))):
             self.node.reply(msg, type='handleVote', term=self.currentTerm, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
         else:
+            self.timer.stop()
             self.votedFor = msg.src
             self.currentTerm = term
             self.node.reply(msg, type='handleVote', term=term, voteGranted=True)
+            self.timer.reset()
 
     def appendEntries(self, msg):
         term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit = tuple(msg.body.message)
@@ -47,7 +49,7 @@ class Follower(SharedState):
         success = False
 
         if term >= self.currentTerm:
-            self.timer.reset()
+            self.timer.stop()
             self.currentTerm = term
 
             if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
@@ -67,3 +69,5 @@ class Follower(SharedState):
             self.node.reply(msg, type="appendEntries_success", term=self.currentTerm, nextIndex=len(self.log))
         else:
             self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, nextIndex=len(self.log))
+
+        self.timer.reset()
