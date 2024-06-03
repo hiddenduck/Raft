@@ -1,9 +1,6 @@
 from SharedState import SharedState
 from node import *
 
-def repeatHeartbeat(node):
-    node.send(node.node_id(), type="heartbeat")
-
 class Leader(SharedState):
     def __init__(self, sharedState):
         super().__init__()
@@ -17,27 +14,30 @@ class Leader(SharedState):
             self.nextIndex[node] = len(self.log)
             self.matchIndex[node] = -1
         
-        self.node.send(self.node.node_id(), type="heartbeat")
-        self.timer.a = 0.05
-        self.timer.b = 0.05
-        self.timer.create(lambda node: repeatHeartbeat(node), self.node)
+        self.heartbeat()
+        #self.timer.a = 0.05
+        #self.timer.b = 0.05
+        self.timer.create(lambda s: s.heartbeat(), self)
         self.timer.start()
     
-    def heartbeat(self, msg):
-        for dest_id in self.node.node_ids():
-            if len(self.log) >= self.nextIndex[dest_id]:
-                self.node.send(dest_id, type="appendEntries", message=(
-                    self.currentTerm, # term
-                    self.node.node_id(), #leaderId
-                    self.nextIndex[dest_id]-1, # prevLogIndex
-                    self.log[self.nextIndex[dest_id]-1][1] if self.nextIndex[dest_id]-1 >= 0 else -1, # prevLogTerm
-                    [self.log[i] for i in range(self.nextIndex[dest_id],len(self.log))], # entries[]
-                    self.commitIndex) # leaderCommit
-                )
-        self.timer.reset()
+    def heartbeat(self):
+        self.node.log('Heartbeat Sent')
+        lock = self.lock
+        with lock:
+            if self.node.active_class == self:
+                for dest_id in self.node.node_ids():
+                    if len(self.log) >= self.nextIndex[dest_id]:
+                        self.node.send(dest_id, type="appendEntries", message=(
+                            self.currentTerm, # term
+                            self.node.node_id(), #leaderId
+                            self.nextIndex[dest_id]-1, # prevLogIndex
+                            self.log[self.nextIndex[dest_id]-1][1] if self.nextIndex[dest_id]-1 >= 0 else -1, # prevLogTerm
+                            [self.log[i] for i in range(self.nextIndex[dest_id],len(self.log))], # entries[]
+                            self.commitIndex) # leaderCommit
+                        )
+            self.timer.reset()
 
     def read(self, msg):
-
         kv_store =self.kv_store
 
         if msg.body.key in kv_store:

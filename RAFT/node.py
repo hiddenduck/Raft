@@ -15,15 +15,17 @@ import logging
 import json
 import sys
 from types import SimpleNamespace as sn
+from threading import Lock
 
 logging.getLogger().setLevel(logging.DEBUG)
 
 class Node():
     def __init__(self):
-        self._active_class = self
+        self.active_class = self
         self._node_id = None
         self._node_ids = []
         self._msg_id = 0
+        self.lock = Lock()
 
     def node_id(self):
         """Returns node id"""
@@ -75,10 +77,10 @@ class Node():
         self.reply(msg, type='init_ok')
 
     def setActiveClass(self, new):
-        self._active_class = new
+        self.active_class = new
 
     def getActiveClass(self):
-        return self._active_class
+        return self.active_class
 
     def _receive(self):
         data = sys.stdin.readline()
@@ -98,8 +100,11 @@ class Node():
             msg = self._receive()
             if msg is None:
                 return None
-            elif (fun := getattr(self._active_class, msg.body.type, None)) != None:
-                fun(msg)
+            else:
+                lock = self.active_class.lock
+                with lock:
+                    if (fun := getattr(self.active_class, msg.body.type, None)) != None:
+                        fun(msg)
             #Não devolver a mensagem de modo a não crashar nenhum nodo
             #else:
             #    return msg

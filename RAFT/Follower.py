@@ -8,15 +8,18 @@ class Follower(SharedState):
         # Set State
         super().changeState(sharedState)
 
-        self.timer.create(lambda node: node.send(node.node_id(), type="startElection"), self.node)
+        self.timer.create(lambda s: s.startElection(), self)
         self.timer.start()
 
         if leaderMsg:
             self.appendEntries(leaderMsg)        
     
-    def startElection(self, msg):
-        self.timer.stop()
-        self.node.setActiveClass(Candidate(super().getState()))
+    def startElection(self):
+        self.node.log('Started Election')
+        lock = self.lock
+        with lock:
+            if self.node.active_class == self:
+                self.node.setActiveClass(Candidate(super().getState()))
 
     def requestVote(self, msg):
         term = msg.body.term

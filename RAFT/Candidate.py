@@ -13,8 +13,15 @@ class Candidate(SharedState):
         self.currentTerm += 1
         self.startRequestVote()
 
-        self.timer.create(lambda node: node.send(node.node_id(), type="resetElection"), self.node)
+        self.timer.create(lambda s: s.resetElection(), self)
         self.timer.start()
+
+    def resetElection(self):
+        self.node.log('Reseted Election')
+        lock = self.lock
+        with lock:
+            if self.node.active_class == self:
+                self.node.setActiveClass(Candidate(super().getState()))
 
     def startRequestVote(self):
         lenLog = len(self.log)
@@ -97,6 +104,3 @@ class Candidate(SharedState):
     def becomeLeader(self):
         from Leader import Leader
         self.node.setActiveClass(Leader(super().getState()))
-
-    def resetElection(self, msg):
-        self.node.setActiveClass(Candidate(super().getState()))

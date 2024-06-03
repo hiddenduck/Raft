@@ -1,4 +1,5 @@
 from node import *
+from threading import Lock
 # import Node_Timer
 from Node_Timer import Node_Timer
 
@@ -21,6 +22,8 @@ class SharedState:
         self.timer = Node_Timer(0.150, 0.300)
 
         self.node = node
+
+        self.lock = Lock()
 
     def getState(self):
         return self
