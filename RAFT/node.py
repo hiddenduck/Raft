@@ -63,6 +63,7 @@ class Node():
     def init(self, msg):
         # in order to avoid circular imports, we need to import inside the function
         from Follower import Follower
+        from Leader import Leader
         from SharedState import SharedState
         """Default handler for init message."""
         self._node_id = msg.body.node_id
@@ -70,9 +71,14 @@ class Node():
 
         logging.info('node %s initialized', self._node_id)
 
-        self.setActiveClass(Follower(SharedState(self)))
+        if self.node_id() != 'n0':
+            self.setActiveClass(Follower(SharedState(self)))
 
-        logging.info('Follower Created')
+            logging.info('Follower Created')
+        else:
+            self.setActiveClass(Leader(SharedState(self)))
+
+            logging.info('Leader Created')
         
         self.reply(msg, type='init_ok')
 

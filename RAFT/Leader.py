@@ -14,27 +14,30 @@ class Leader(SharedState):
             self.nextIndex[node] = len(self.log)
             self.matchIndex[node] = -1
         
-        self.heartbeat()
+        self.sendEntries()
         self.timer.a = 0.05
         self.timer.b = 0.05
         self.timer.create(lambda s: s.heartbeat(), self)
         self.timer.start()
     
+    def sendEntries(self):
+        for dest_id in self.node.node_ids():
+            if len(self.log) >= self.nextIndex[dest_id]:
+                self.node.send(dest_id, type="appendEntries", message=(
+                    self.currentTerm, # term
+                    self.node.node_id(), #leaderId
+                    self.nextIndex[dest_id]-1, # prevLogIndex
+                    self.log[self.nextIndex[dest_id]-1][1] if self.nextIndex[dest_id]-1 >= 0 else -1, # prevLogTerm
+                    [self.log[i] for i in range(self.nextIndex[dest_id],len(self.log))], # entries[]
+                    self.commitIndex) # leaderCommit
+                )
+
     def heartbeat(self):
         self.node.log('Heartbeat Sent')
         lock = self.lock
         with lock:
             if self.node.active_class == self:
-                for dest_id in self.node.node_ids():
-                    if len(self.log) >= self.nextIndex[dest_id]:
-                        self.node.send(dest_id, type="appendEntries", message=(
-                            self.currentTerm, # term
-                            self.node.node_id(), #leaderId
-                            self.nextIndex[dest_id]-1, # prevLogIndex
-                            self.log[self.nextIndex[dest_id]-1][1] if self.nextIndex[dest_id]-1 >= 0 else -1, # prevLogTerm
-                            [self.log[i] for i in range(self.nextIndex[dest_id],len(self.log))], # entries[]
-                            self.commitIndex) # leaderCommit
-                        )
+                self.sendEntries()
             self.timer.reset()
 
     def read(self, msg):
