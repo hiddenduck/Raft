@@ -15,8 +15,8 @@ class Leader(SharedState):
             self.matchIndex[node] = -1
         
         self.heartbeat()
-        #self.timer.a = 0.05
-        #self.timer.b = 0.05
+        self.timer.a = 0.05
+        self.timer.b = 0.05
         self.timer.create(lambda s: s.heartbeat(), self)
         self.timer.start()
     
