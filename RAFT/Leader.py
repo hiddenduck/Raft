@@ -104,14 +104,18 @@ class Leader(SharedState):
             else:
                 count = count+1 if self.matchIndex[replica] == candidate else count-1
         
+        if candidate == self.commitIndex:
+            return
+
         count = 0
 
         for replica in self.matchIndex.keys():
             if self.matchIndex[replica] == candidate:
                 count += 1
         
-        if count > len(self.matchIndex.keys())/2 and candidate > self.commitIndex and self.log[candidate][1] == self.currentTerm:
-            for toBeCommited in self.log[self.commitIndex:candidate+1]:
+        if  count > len(self.matchIndex.keys())/2 and \
+            candidate > self.commitIndex and self.log[candidate][1] == self.currentTerm:
+            for toBeCommited in self.log[self.commitIndex+1:candidate+1]:
                 body = toBeCommited[0].body
                 self.kv_store[body.key] = body.value
                 self.node.reply(toBeCommited[0], type="write_ok" if body.type == "write" else "cas_ok")

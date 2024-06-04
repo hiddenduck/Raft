@@ -160,3 +160,4 @@ cython_debug/
 
 # Maelstrom RAFT Bloat
 RAFT/store
+Driftwood/store
