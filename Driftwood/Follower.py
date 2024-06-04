@@ -8,7 +8,6 @@ class Follower(SharedState):
         # Set State
         super().changeState(sharedState)
         #Volatile State
-        self.roundLC = 0
 
         self.timer.create(lambda s: s.startElection(), self)
         self.timer.start()
@@ -36,6 +35,7 @@ class Follower(SharedState):
             self.timer.stop()
             self.votedFor = msg.src
             self.currentTerm = term
+            self.roundLC = 0
             self.node.reply(msg, type='handleVote', term=term, voteGranted=True)
             self.timer.reset()
 
@@ -44,32 +44,41 @@ class Follower(SharedState):
 
         success = False
 
-        if (isRPC or leaderRound > self.roundLC) and term >= self.currentTerm:
-            self.timer.stop()
-            self.currentTerm = term
-            self.votedFor = msg.src
+        if term > self.currentTerm:
+            self.roundLC = 0
+            self.votedFor = leaderID
 
-            if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
-                success = True
+        if term >= self.currentTerm:
+            if (isRPC or leaderRound > self.roundLC):
+                self.timer.stop()
+                self.currentTerm = term
 
-                if prevLogIndex >= 0:
-                    self.log = self.log[:prevLogIndex+1] + entries
+                if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
+                    success = True
+
+                    if prevLogIndex >= 0:
+                        self.log = self.log[:prevLogIndex+1] + entries
+                    else:
+                        self.log = entries
+                
+                    if leaderCommit > self.commitIndex:
+                        self.commitIndex = min(leaderCommit, len(self.log)-1)
+                        self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
+                        self.lastApplied = self.commitIndex
                 else:
-                    self.log = entries
-            
-                if leaderCommit > self.commitIndex:
-                    self.commitIndex = min(leaderCommit, len(self.log)-1)
-                    self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
-                    self.lastApplied = self.commitIndex
+                    self.log = entries[:prevLogIndex]
 
-            if not isRPC:
-                #TODO Gossip request
-                undefined
+                if not isRPC:
+                    self.roundLC = leaderRound
+                    #TODO Gossip request
+                    undefined
 
-            self.timer.reset()
+                self.timer.reset()
+            elif not isRPC:
+                return
 
         if success:
-            self.node.reply(msg, type="appendEntries_success", term=self.currentTerm, nextIndex=len(self.log))
+            self.node.reply(msg, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log))
         else:
-            self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, nextIndex=len(self.log))
+            self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
 

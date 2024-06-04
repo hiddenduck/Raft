@@ -27,9 +27,9 @@ class Leader(SharedState):
                 self.node.send(dest_id, type="appendEntries", message=(
                     self.currentTerm, # term
                     self.node.node_id(), #leaderId
-                    self.nextIndex[dest_id]-1, # prevLogIndex
-                    self.log[self.nextIndex[dest_id]-1][1] if self.nextIndex[dest_id]-1 >= 0 else -1, # prevLogTerm
-                    [self.log[i] for i in range(self.nextIndex[dest_id],len(self.log))], # entries[]
+                    self.commitIndex, # prevLogIndex
+                    self.log[self.commitIndex+1][1] if self.commitIndex+1 >= 0 else -1, # prevLogTerm
+                    [self.log[i] for i in range(self.commitIndex+1,len(self.log))], # entries[]
                     self.commitIndex) # leaderCommit
                 )
 
@@ -54,17 +54,6 @@ class Leader(SharedState):
     
     def write(self, msg):
         self.log.append((msg, self.currentTerm))
-
-        for dest_id in self.node.node_ids():
-            if len(self.log) >= self.nextIndex[dest_id]:
-                self.node.send(dest_id, type="appendEntries", message=(
-                    self.currentTerm, # term
-                    self.node.node_id(), #leaderId
-                    self.nextIndex[dest_id]-1, # prevLogIndex
-                    self.log[self.nextIndex[dest_id]-1][1] if self.nextIndex[dest_id]-1 >= 0 else -1, # prevLogTerm
-                    [self.log[i] for i in range(self.nextIndex[dest_id],len(self.log))], # entries[]
-                    self.commitIndex) # leaderCommit
-                )
     
     def write_redirect(self, msg):
         self.write(msg.body.msg)
@@ -90,8 +79,8 @@ class Leader(SharedState):
         self.cas(msg.body.msg)
                 
     def appendEntries_success(self, msg):
-        self.nextIndex[msg.src]  = msg.body.nextIndex
-        self.matchIndex[msg.src] = msg.body.nextIndex-1
+        self.nextIndex[msg.src]  = msg.body.lastLogIndex+1
+        self.matchIndex[msg.src] = msg.body.lastLogIndex
 
         # Detect Majority
 
@@ -124,19 +113,20 @@ class Leader(SharedState):
 
     def appendEntries_insuccess(self, msg):
         dest_id = msg.src
-        
+        lastLogIndex = msg.body.lastLogIndex
+
         if msg.body.term <= self.currentTerm:
-            self.nextIndex[dest_id] = self.nextIndex[dest_id] - 1 if self.nextIndex[dest_id] > 0 else 0
             self.node.send(dest_id, type="appendEntries", message=(
                 self.currentTerm, # term
                 self.node.node_id(), #leaderId
-                self.nextIndex[dest_id]-1, # prevLogIndex
-                self.log[self.nextIndex[dest_id]-1][1] if self.nextIndex[dest_id]-1 >= 0 else -1, # prevLogTerm
-                [self.log[i] for i in range(self.nextIndex[dest_id],len(self.log))], # entries[]
+                lastLogIndex, # prevLogIndex
+                self.log[lastLogIndex][1] if lastLogIndex >= 0 else -1, # prevLogTerm
+                [self.log[i] for i in range(lastLogIndex+1,len(self.log))], # entries[]
                 self.commitIndex) # leaderCommit
                 )
         else:
             self.timer.stop()
+            self.roundLC = 0
             self.currentTerm = msg.body.term
             self.becomeFollower()
 
@@ -146,34 +136,48 @@ class Leader(SharedState):
             self.kv_store[msg.body.key] = msg.body.value
 
     def appendEntries(self, msg):
-        term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit = tuple(msg.body.message)
+        term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit, leaderRound, isRPC = tuple(msg.body.message)
 
         success = False
         changeType = False
 
-        if term > self.currentTerm: # if a valid leader contacts:
-            self.timer.stop()
-            changeType = True
-            self.currentTerm = term
-            self.votedFor = msg.src
-
-            if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
-                success = True
-                
-                if prevLogIndex >= 0:
-                    self.log = self.log[:prevLogIndex+1] + entries
-                else:
-                    self.log = entries
+        if term > self.currentTerm: # if a valid leader contacts (no candidate é >= no leader é >)
+            self.roundLC = 0
+            self.votedFor = leaderID
             
-                if leaderCommit > self.commitIndex:
-                    self.commitIndex = min(leaderCommit, len(self.log)-1)
-                    self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
-                    self.lastApplied = self.commitIndex
+            if (isRPC or leaderRound > self.roundLC):
+                self.timer.stop()
+                changeType = True
+                self.currentTerm = term
+
+                if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
+                    success = True
                     
+                    if prevLogIndex >= 0:
+                        self.log = self.log[:prevLogIndex+1] + entries
+                    else:
+                        self.log = entries
+                
+                    if leaderCommit > self.commitIndex:
+                        self.commitIndex = min(leaderCommit, len(self.log)-1)
+                        self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
+                        self.lastApplied = self.commitIndex
+                else:
+                    self.log = entries[:prevLogIndex]    
+                
+                if not isRPC:
+                    self.roundLC = leaderRound
+                    #TODO Gossip request
+                    undefined
+
+            elif not isRPC:
+                self.becomeFollower()
+                return
+
         if success:
-            self.node.reply(msg, type="appendEntries_success", term=self.currentTerm, nextIndex=len(self.log))
+            self.node.reply(msg, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log))
         else:
-            self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, nextIndex=len(self.log))
+            self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
 
         if changeType:
             self.becomeFollower()
@@ -184,15 +188,17 @@ class Leader(SharedState):
         if term > self.currentTerm:
             self.timer.stop()
             self.currentTerm = term
+            self.roundLC = 0
 
             if  len(self.log) > 0 and \
                 (msg.body.lastLogTerm < self.log[-1][1] or \
                 (msg.body.lastLogTerm == self.log[-1][1] and msg.body.lastLogIndex < len(self.log))):
                 #Não devíamos responder se não vai mudar em nada
                 self.node.reply(msg, type='handleVote', term=term, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
+                self.votedFor = None
             else:
-                self.votedFor = msg.src
                 self.node.reply(msg, type='handleVote', term=term, voteGranted=True)
+                self.votedFor = msg.src
 
             self.becomeFollower()
         else:

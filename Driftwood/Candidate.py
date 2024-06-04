@@ -36,6 +36,7 @@ class Candidate(SharedState):
         if term > self.currentTerm:
             self.timer.stop()
             self.currentTerm = term
+            self.roundLC = 0
 
             if  len(self.log) > 0 and \
                 (msg.body.lastLogTerm < self.log[-1][1] or \
@@ -65,34 +66,49 @@ class Candidate(SharedState):
             self.becomeFollower()
 
     def appendEntries(self, msg):
-        term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit = tuple(msg.body.message)
+        term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit, leaderRound, isRPC = tuple(msg.body.message)
 
         success = False
         changeType = False
 
-        if term >= self.currentTerm: # if a valid leader contacts:
-            self.timer.stop()
-            changeType = True
-            self.currentTerm = term
-            self.votedFor = msg.src
+        if term > self.currentTerm:
+            self.votedFor = leaderID
+            self.roundLC = 0
 
-            if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
-                success = True
-                
-                if prevLogIndex >= 0:
-                    self.log = self.log[:prevLogIndex+1] + entries
-                else:
-                    self.log = entries
-            
-                if leaderCommit > self.commitIndex:
-                    self.commitIndex = min(leaderCommit, len(self.log)-1)
-                    self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
-                    self.lastApplied = self.commitIndex
+        if term >= self.currentTerm: # if a valid leader contacts (no candidate é >= no leader é >)
+            if (isRPC or leaderRound > self.roundLC):
+                self.timer.stop()
+                changeType = True
+                self.currentTerm = term
+
+                if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
+                    success = True
                     
+                    if prevLogIndex >= 0:
+                        self.log = self.log[:prevLogIndex+1] + entries
+                    else:
+                        self.log = entries
+                
+                    if leaderCommit > self.commitIndex:
+                        self.commitIndex = min(leaderCommit, len(self.log)-1)
+                        self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
+                        self.lastApplied = self.commitIndex                    
+                else:
+                    self.log = entries[:prevLogIndex]
+
+                if not isRPC:
+                    self.roundLC = leaderRound
+                    #TODO Gossip request
+                    undefined
+
+            elif not isRPC:
+                self.becomeFollower()
+                return
+
         if success:
-            self.node.reply(msg, type="appendEntries_success", term=self.currentTerm, nextIndex=len(self.log))
+            self.node.reply(msg, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log))
         else:
-            self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, nextIndex=len(self.log))
+            self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
 
         if changeType:
             self.becomeFollower()

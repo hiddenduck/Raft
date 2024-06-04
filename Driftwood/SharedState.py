@@ -43,6 +43,7 @@ class SharedState:
         self.lastApplied = sharedState.lastApplied
 
         self.node = sharedState.node
+        self.roundLC = sharedState.roundLC
     
     def read(self, msg):
         if self.votedFor != None and self.votedFor != self.node.node_id():
