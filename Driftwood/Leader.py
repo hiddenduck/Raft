@@ -129,7 +129,7 @@ class Leader(SharedState):
                 self.commitIndex, # leaderCommit
                 self.roundLC, #leaderRound
                 False #isRPC
-                ) 
+                )
                 )
         else:
             self.timer.stop()
