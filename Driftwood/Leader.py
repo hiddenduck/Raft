@@ -134,8 +134,7 @@ class Leader(SharedState):
                 )
         else:
             self.timer.stop()
-            self.roundLC = 0
-            self.currentTerm = msg.body.term
+            self.newTerm(msg.body.term)
             self.becomeFollower()
 
 
@@ -150,7 +149,7 @@ class Leader(SharedState):
         changeType = False
 
         if term > self.currentTerm: # if a valid leader contacts (no candidate é >= no leader é >)
-            self.roundLC = 0
+            self.newTerm(term)
             self.votedFor = leaderID
             
             if (isRPC or leaderRound > self.roundLC):
@@ -195,8 +194,7 @@ class Leader(SharedState):
 
         if term > self.currentTerm:
             self.timer.stop()
-            self.currentTerm = term
-            self.roundLC = 0
+            self.newTerm(term)
 
             if  len(self.log) > 0 and \
                 (msg.body.lastLogTerm < self.log[-1][1] or \

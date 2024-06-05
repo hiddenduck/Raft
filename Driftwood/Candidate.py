@@ -35,8 +35,7 @@ class Candidate(SharedState):
 
         if term > self.currentTerm:
             self.timer.stop()
-            self.currentTerm = term
-            self.roundLC = 0
+            self.newTerm(term)
 
             if  len(self.log) > 0 and \
                 (msg.body.lastLogTerm < self.log[-1][1] or \
@@ -71,11 +70,11 @@ class Candidate(SharedState):
         success = False
         changeType = False
 
-        if term > self.currentTerm:
-            self.votedFor = leaderID
-            self.roundLC = 0
 
         if term >= self.currentTerm: # if a valid leader contacts (no candidate é >= no leader é >)
+            if term > self.currentTerm:
+                self.newTerm(term)
+                
             if (isRPC or leaderRound > self.roundLC):
                 self.timer.stop()
                 changeType = True

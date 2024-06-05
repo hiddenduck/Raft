@@ -76,6 +76,7 @@ class SharedState:
 
     #TODO colocar isto como forma de atualizar o termo, ver se há mais coisas a dar reset
     def newTerm(self, newTerm):
+        self.roundLC = 0
         self.currentTerm = newTerm
         self.bitarray.setall(0)
         self.nextCommit = self.maxCommit + 1

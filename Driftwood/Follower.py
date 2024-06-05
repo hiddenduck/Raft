@@ -34,8 +34,7 @@ class Follower(SharedState):
         else:
             self.timer.stop()
             self.votedFor = msg.src
-            self.currentTerm = term
-            self.roundLC = 0
+            self.newTerm(term)
             self.node.reply(msg, type='handleVote', term=term, voteGranted=True)
             self.timer.reset()
 
@@ -45,8 +44,7 @@ class Follower(SharedState):
         success = False
 
         if term > self.currentTerm:
-            self.roundLC = 0
-            self.votedFor = leaderID
+            self.newTerm(term)
 
         if term >= self.currentTerm:
             if (isRPC or leaderRound > self.roundLC):
