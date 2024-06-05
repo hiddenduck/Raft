@@ -74,6 +74,7 @@ class SharedState:
         for (msg, _) in entries:
             self.kv_store[msg.body.key] = msg.body.value
 
+    #TODO colocar isto como forma de atualizar o termo, ver se há mais coisas a dar reset
     def newTerm(self, newTerm):
         self.currentTerm = newTerm
         self.bitarray.setall(0)
