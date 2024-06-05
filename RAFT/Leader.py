@@ -113,7 +113,7 @@ class Leader(SharedState):
             if self.matchIndex[replica] == candidate:
                 count += 1
         
-        if  count > len(self.matchIndex.keys())/2 and \
+        if  count > len(self.matchIndex.keys())/2.0 and \
             candidate > self.commitIndex and self.log[candidate][1] == self.currentTerm:
             for toBeCommited in self.log[self.commitIndex+1:candidate+1]:
                 body = toBeCommited[0].body
