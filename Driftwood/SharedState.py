@@ -1,6 +1,6 @@
 from node import *
 from threading import Lock
-from bitmap import BitMap
+from bitarray import bitarray
 # import Node_Timer
 from Node_Timer import Node_Timer
 
@@ -26,7 +26,7 @@ class SharedState:
         self.node = node
 
         # New Data Structures
-        self.bitmap = BitMap(len(self.node.node_ids())+1)
+        self.bitarray = (len(self.node.node_ids())+1) * bitarray('0')
 
         self.nextCommit = -1
         self.maxCommit  = -1
@@ -75,13 +75,22 @@ class SharedState:
             self.kv_store[msg.body.key] = msg.body.value
 
     def update(self):
-        if self.bitmap.count() > (self.bitmap.size() / 2.0):
+        if self.bitarray.count() > (self.bitarray.size() / 2.0):
             self.maxCommit = self.nextCommit
-            self.bitmap = BitMap(len(self.node.node_ids)+1)
+            self.bitarray.setall(0)
             if self.nextCommit >= len(self.log)-1 or \
                self.currentTerm != self.log[-1][1]:
                 self.nextCommit = self.nextCommit+1
             else:
                 self.nextCommit = len(self.log)-1
-                self.bitmap.set(int(self.node.node_id()[1:]))
+                self.bitarray.set(int(self.node.node_id()[1:]))
+
+    def merge(self, bitarray, maxCommit, nextCommit):
+        if maxCommit > self.maxCommit:
+            self.maxCommit = maxCommit
+        if self.nextCommit <= self.maxCommit:
+            self.bitarray = bitarray
+            self.nextCommit = nextCommit
+        else:
+            self.bitarray |= bitarray
     
