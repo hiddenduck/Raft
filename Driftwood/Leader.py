@@ -23,6 +23,7 @@ class Leader(SharedState):
     
     def sendEntries(self, isRPC=False):
         self.roundLC += 1
+        #TODO tornar este envio num gossip só para alguns
         for dest_id in self.node.node_ids():
             if len(self.log) >= self.nextIndex[dest_id]:
                 self.node.send(dest_id, type="appendEntries", message=(
