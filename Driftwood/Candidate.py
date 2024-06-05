@@ -68,10 +68,6 @@ class Candidate(SharedState):
     def appendEntries(self, msg):
         term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit, leaderRound, isRPC = tuple(msg.body.message)
 
-        if term > self.currentTerm:
-            self.votedFor = leaderID
-            self.roundLC = 0
-
         if term >= self.currentTerm: # if a valid leader contacts (no candidate é >= no leader é >)
             self.roundLC = 0
             self.votedFor = leaderID

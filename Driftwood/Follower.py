@@ -74,5 +74,7 @@ class Follower(SharedState):
 
                 self.timer.reset()
             elif isRPC:
+                self.timer.stop()
                 self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
+                self.timer.reset()
 
