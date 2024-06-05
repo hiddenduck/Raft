@@ -74,6 +74,11 @@ class SharedState:
         for (msg, _) in entries:
             self.kv_store[msg.body.key] = msg.body.value
 
+    def newTerm(self, newTerm):
+        self.currentTerm = newTerm
+        self.bitarray.setall(0)
+        self.nextCommit = self.maxCommit + 1
+
     def update(self):
         if self.bitarray.count() > (self.bitarray.size() / 2.0):
             self.maxCommit = self.nextCommit
@@ -91,6 +96,6 @@ class SharedState:
         if self.nextCommit <= self.maxCommit:
             self.bitarray = bitarray
             self.nextCommit = nextCommit
-        else:
+        elif self.nextCommit <= nextCommit:
             self.bitarray |= bitarray
     
