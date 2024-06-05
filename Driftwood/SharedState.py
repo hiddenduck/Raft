@@ -1,5 +1,6 @@
 from node import *
 from threading import Lock
+from bitmap import BitMap
 # import Node_Timer
 from Node_Timer import Node_Timer
 
@@ -23,6 +24,12 @@ class SharedState:
         self.timer = Node_Timer(0.150, 0.300)
 
         self.node = node
+
+        # New Data Structures
+        self.bitmap = BitMap(len(self.node.node_ids())+1)
+
+        self.nextCommit = -1
+        self.maxCommit  = -1
 
         self.lock = Lock()
 
@@ -66,4 +73,15 @@ class SharedState:
     def applyLogEntries(self, entries):
         for (msg, _) in entries:
             self.kv_store[msg.body.key] = msg.body.value
+
+    def update(self):
+        if self.bitmap.count() > (self.bitmap.size() / 2.0):
+            self.maxCommit = self.nextCommit
+            self.bitmap = BitMap(len(self.node.node_ids)+1)
+            if self.nextCommit >= len(self.log)-1 or \
+               self.currentTerm != self.log[-1][1]:
+                self.nextCommit = self.nextCommit+1
+            else:
+                self.nextCommit = len(self.log)-1
+                self.bitmap.set(int(self.node.node_id()[1:]))
     
