@@ -35,18 +35,19 @@ class Candidate(SharedState):
 
         if term > self.currentTerm:
             self.timer.stop()
-            self.newTerm(term)
 
             if  len(self.log) > 0 and \
                 (msg.body.lastLogTerm < self.log[-1][1] or \
                 (msg.body.lastLogTerm == self.log[-1][1] and msg.body.lastLogIndex < len(self.log))):
                 #Não devíamos responder se não vai mudar em nada
-                self.node.reply(msg, type='handleVote', term=term, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
-                self.becomeFollower()
+                self.node.reply(msg, type='handleVote', term=term, voteGranted=False)
+                votedFor = None
             else:
                 self.node.reply(msg, type='handleVote', term=term, voteGranted=True)
-                self.becomeFollower(msg.src)
+                votedFor = msg.src
 
+            self.newTerm(term, votedFor)
+            self.becomeFollower()
         else:
             #Ligeiramente diferente dos votos dos líderes, só avisa se o seu termo for maior
             self.node.reply(msg, type="handleVote", term=self.currentTerm, voteGranted = False)
@@ -60,62 +61,43 @@ class Candidate(SharedState):
                 self.becomeLeader()
 
         elif self.currentTerm < msg.body.term:
-            self.timer.stop()
-            self.currentTerm = msg.body.term
+            self.newTerm(msg.body.term)
             self.becomeFollower()
 
     def appendEntries(self, msg):
         term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit, leaderRound, isRPC = tuple(msg.body.message)
 
-        success = False
-        changeType = False
-
-
         if term >= self.currentTerm: # if a valid leader contacts (no candidate é >= no leader é >)
-            if term > self.currentTerm:
-                self.newTerm(term)
-                
-            if (isRPC or leaderRound > self.roundLC):
-                self.timer.stop()
-                changeType = True
-                self.currentTerm = term
+            self.timer.stop()
+            self.newTerm(term, votedFor=leaderID)
 
+            if (isRPC or leaderRound > self.roundLC):
                 if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
-                    success = True
-                    
                     if prevLogIndex >= 0:
                         self.log = self.log[:prevLogIndex+1] + entries
                     else:
                         self.log = entries
-                
-                    if leaderCommit > self.commitIndex:
-                        self.commitIndex = min(leaderCommit, len(self.log)-1)
-                        self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
-                        self.lastApplied = self.commitIndex                    
+                    self.node.reply(msg, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log))
                 else:
                     self.log = entries[:prevLogIndex]
+                    self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
+
+                #sempre que o log muda testa-se o commitindex
+                self.updateCommitIndex()
 
                 if not isRPC:
                     self.roundLC = leaderRound
                     #TODO Gossip request
                     undefined
 
-            elif not isRPC:
-                self.becomeFollower()
-                return
+            elif isRPC:
+                self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
 
-        if success:
-            self.node.reply(msg, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log))
-        else:
-            self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
-
-        if changeType:
             self.becomeFollower()
 
     #Estas funções têm de ser sempre as últimas a serem invocadas num método (garantir que houve troca)
-    def becomeFollower(self, votedFor=None):
+    def becomeFollower(self):
         from Follower import Follower
-        self.votedFor=votedFor
         self.node.setActiveClass(Follower(super().getState()))
 
     def becomeLeader(self):

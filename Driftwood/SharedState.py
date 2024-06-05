@@ -74,16 +74,24 @@ class SharedState:
         for (msg, _) in entries:
             self.kv_store[msg.body.key] = msg.body.value
 
+    def updateCommitIndex(self):
+        self.commitIndex = min(self.maxCommit, len(self.log)-1)
+        if self.commitIndex > self.lastApplied:
+            self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
+            self.lastApplied = self.commitIndex
+
     #TODO colocar isto como forma de atualizar o termo, ver se há mais coisas a dar reset
-    def newTerm(self, newTerm):
+    def newTerm(self, newTerm, votedFor=None):
         self.roundLC = 0
         self.currentTerm = newTerm
         self.bitarray.setall(0)
+        self.votedFor = votedFor
         self.nextCommit = self.maxCommit + 1
 
     def update(self):
         if self.bitarray.count() > (self.bitarray.size() / 2.0):
-            self.maxCommit = self.nextCommit
+            self.maxCommit = self.nextCommit #sempre que o maxcommit muda testa-se o commit index
+            self.updateCommitIndex()
             self.bitarray.setall(0)
             if self.nextCommit >= len(self.log)-1 or \
                self.currentTerm != self.log[-1][1]:
@@ -94,7 +102,8 @@ class SharedState:
 
     def merge(self, bitarray, maxCommit, nextCommit):
         if maxCommit > self.maxCommit:
-            self.maxCommit = maxCommit
+            self.maxCommit = maxCommit #sempre que o maxcommit muda testa-se o commit index
+            self.updateCommitIndex()
         if self.nextCommit <= self.maxCommit:
             self.bitarray = bitarray
             self.nextCommit = nextCommit
