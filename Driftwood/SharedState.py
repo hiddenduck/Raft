@@ -75,10 +75,11 @@ class SharedState:
             self.kv_store[msg.body.key] = msg.body.value
 
     def updateCommitIndex(self):
-        self.commitIndex = min(self.maxCommit, len(self.log)-1)
-        if self.commitIndex > self.lastApplied:
-            self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
-            self.lastApplied = self.commitIndex
+        if self.currentTerm == self.log[-1][1]:
+            self.commitIndex = min(self.maxCommit, len(self.log)-1)
+            if self.commitIndex > self.lastApplied:
+                self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
+                self.lastApplied = self.commitIndex
 
     #TODO colocar isto como forma de atualizar o termo, ver se há mais coisas a dar reset
     def newTerm(self, newTerm, votedFor=None):
