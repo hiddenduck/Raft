@@ -68,22 +68,19 @@ class Candidate(SharedState):
     def appendEntries(self, msg):
         term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit, leaderRound, isRPC = tuple(msg.body.message)
 
-        success = False
-        changeType = False
-
         if term > self.currentTerm:
             self.votedFor = leaderID
             self.roundLC = 0
 
         if term >= self.currentTerm: # if a valid leader contacts (no candidate é >= no leader é >)
+            self.roundLC = 0
+            self.votedFor = leaderID
+            
             if (isRPC or leaderRound > self.roundLC):
                 self.timer.stop()
-                changeType = True
                 self.currentTerm = term
 
-                if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
-                    success = True
-                    
+                if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):                    
                     if prevLogIndex >= 0:
                         self.log = self.log[:prevLogIndex+1] + entries
                     else:
@@ -92,25 +89,22 @@ class Candidate(SharedState):
                     if leaderCommit > self.commitIndex:
                         self.commitIndex = min(leaderCommit, len(self.log)-1)
                         self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
-                        self.lastApplied = self.commitIndex                    
-                else:
-                    self.log = entries[:prevLogIndex]
+                        self.lastApplied = self.commitIndex
 
+                    self.node.reply(msg, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log))
+                else:
+                    self.log = entries[:prevLogIndex]    
+                    self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
+                
                 if not isRPC:
                     self.roundLC = leaderRound
                     #TODO Gossip request
                     undefined
 
-            elif not isRPC:
-                self.becomeFollower()
-                return
+            elif isRPC:
+                self.timer.stop()
+                self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
 
-        if success:
-            self.node.reply(msg, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log))
-        else:
-            self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
-
-        if changeType:
             self.becomeFollower()
 
     #Estas funções têm de ser sempre as últimas a serem invocadas num método (garantir que houve troca)

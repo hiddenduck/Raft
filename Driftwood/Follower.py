@@ -42,8 +42,6 @@ class Follower(SharedState):
     def appendEntries(self, msg):
         term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit, leaderRound, isRPC = tuple(msg.body.message)
 
-        success = False
-
         if term > self.currentTerm:
             self.roundLC = 0
             self.votedFor = leaderID
@@ -54,8 +52,6 @@ class Follower(SharedState):
                 self.currentTerm = term
 
                 if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
-                    success = True
-
                     if prevLogIndex >= 0:
                         self.log = self.log[:prevLogIndex+1] + entries
                     else:
@@ -65,8 +61,11 @@ class Follower(SharedState):
                         self.commitIndex = min(leaderCommit, len(self.log)-1)
                         self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
                         self.lastApplied = self.commitIndex
+
+                    self.node.reply(msg, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log))
                 else:
                     self.log = entries[:prevLogIndex]
+                    self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
 
                 if not isRPC:
                     self.roundLC = leaderRound
@@ -74,11 +73,6 @@ class Follower(SharedState):
                     undefined
 
                 self.timer.reset()
-            elif not isRPC:
-                return
-
-        if success:
-            self.node.reply(msg, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log))
-        else:
-            self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
+            elif isRPC:
+                self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
 
