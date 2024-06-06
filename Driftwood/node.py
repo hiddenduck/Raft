@@ -76,11 +76,11 @@ class Node():
         logging.info('node %s initialized', self._node_id)
 
         if self.node_id() != 'n0':
-            self.setActiveClass(Follower(SharedState(self)))
+            self.setActiveClass(Follower(SharedState(node=self)))
 
             logging.info('Follower Created')
         else:
-            self.setActiveClass(Leader(SharedState(self)))
+            self.setActiveClass(Leader(SharedState(node=self)))
 
             logging.info('Leader Created')
         
