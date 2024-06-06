@@ -8,7 +8,6 @@ class Leader(SharedState):
         super().changeState(sharedState)
         # Volatile state
         self.roundLC = 0
-        self.votedFor = None
         self.nextIndex = {}
         self.matchIndex = {}
 
@@ -126,7 +125,6 @@ class Leader(SharedState):
             self.create_peer_permutation()
             self.currentTerm = msg.body.term
             self.becomeFollower()
-
 
     def applyLogEntries(self, entries):
         for (msg, _) in entries:

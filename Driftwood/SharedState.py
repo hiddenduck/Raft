@@ -5,17 +5,17 @@ from Node_Timer import Node_Timer
 import random
 
 class SharedState:
-    def __init__(self, node=None):
+    def __init__(self, node=None, votedFor=None):
         # Lin-kv Store
         self.kv_store = dict()
         self.kv_log_store = dict()
         
         # Gossip
-        self.fanout = 1
+        self.fanout = 2
 
         # Persistent state
         self.currentTerm = 0
-        self.votedFor = None
+        self.votedFor = votedFor
         self.log = [] # log format -> ((key,value), term)
 
         # Volatile state

@@ -6,14 +6,14 @@ from Node_Timer import Node_Timer
 import random
 
 class SharedState:
-    def __init__(self, node=None):
+    def __init__(self, node=None, votedFor=None):
         # Lin-kv Store
         self.kv_store = dict()
         self.kv_log_store = dict()
         
         # Persistent state
         self.currentTerm = 0
-        self.votedFor = None
+        self.votedFor = votedFor
         self.log = [] # log format -> ((key,value), term)
 
         # Volatile state
@@ -52,6 +52,10 @@ class SharedState:
 
         self.node = sharedState.node
         self.roundLC = sharedState.roundLC
+
+        self.bitarray = sharedState.bitarray
+        self.nextCommit = sharedState.nextCommit
+        self.maxCommit  = sharedState.maxCommit
     
     def read(self, msg):
         if self.votedFor != None and self.votedFor != self.node.node_id():
