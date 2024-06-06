@@ -44,9 +44,9 @@ class Follower(SharedState):
             self.newTerm(term, votedFor=leaderID)
 
         if term >= self.currentTerm:
-            self.timer.stop()
             self.mergeBitmap(bitmap, maxCommit, nextCommit)
             if (isRPC or leaderRound > self.roundLC):
+                self.timer.stop()
                 if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
                     if prevLogIndex >= 0:
                         self.log = self.log[:prevLogIndex+1] + entries
@@ -66,7 +66,7 @@ class Follower(SharedState):
                     self.log = entries[:prevLogIndex]
                     self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log)-1, prevLogIndex-1))
 
-            self.timer.reset()
+                self.timer.reset()
         else:
             self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=len(self.log)-1)
                 
