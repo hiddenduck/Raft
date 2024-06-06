@@ -14,7 +14,7 @@ class Follower(SharedState):
         self.timer.start()
 
         if leaderMsg:
-            self.appendEntries(leaderMsg)        
+            self.appendEntries(leaderMsg)
     
     def startElection(self):
         self.node.log('Started Election')
@@ -59,8 +59,8 @@ class Follower(SharedState):
                     self.updateBitmap()
                     self.checkCommitIndex()
 
-                    #if isRPC:
-                    #    self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
+                    if isRPC:
+                        self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
                     if not isRPC:
                         self.roundLC = leaderRound
                         #TODO Gossip request

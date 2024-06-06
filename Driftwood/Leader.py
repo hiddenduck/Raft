@@ -21,7 +21,6 @@ class Leader(SharedState):
         
         self.sendEntries(self.node.node_id(), self.commitIndex)
         self.c       += self.fanout
-        self.roundLC += 1
         self.timer.a = 0.05
         self.timer.b = 0.05
         self.timer.create(lambda s: s.heartbeat(), self)
@@ -33,7 +32,6 @@ class Leader(SharedState):
         with lock:
             if self.node.active_class == self:
                 self.sendEntries(self.node.node_id(), self.commitIndex)
-                self.c       += self.fanout
                 self.roundLC += 1
             self.timer.reset()
 

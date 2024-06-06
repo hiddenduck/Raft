@@ -27,7 +27,7 @@ class Leader(SharedState):
         with lock:
             if self.node.active_class == self:
                 self.sendEntries(self.node.node_id())
-                self.roundLC += self.fanout
+                self.roundLC += 1
             self.timer.reset()
 
     def read(self, msg):
@@ -121,8 +121,8 @@ class Leader(SharedState):
                     self.updateBitmap()
                     self.checkCommitIndex()
 
-                    #if isRPC:
-                    #    self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
+                    if isRPC:
+                        self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
                     if not isRPC:
                         self.roundLC = leaderRound
                         #TODO Gossip request

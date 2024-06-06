@@ -31,6 +31,8 @@ class SharedState:
             self.fanout = int(math_log(len(self.node.node_ids()))) + 1 # fanout + C
                 # New Data Structures
             self.bitarray = (len(self.node.node_ids())+1) * bitarray('0')
+            self.c = 0
+            self.create_peer_permutation()
 
         self.nextCommit = 0
         self.maxCommit  = -1
@@ -61,6 +63,8 @@ class SharedState:
         self.bitarray = sharedState.bitarray
         self.nextCommit = sharedState.nextCommit
         self.maxCommit  = sharedState.maxCommit
+
+        self.c = sharedState.c
     
     def read(self, msg):
         if self.votedFor != None and self.votedFor != self.node.node_id():
@@ -135,7 +139,7 @@ class SharedState:
         ids = self.node.node_ids()
         len_ids = len(ids)
         for i in range(self.fanout):
-            dest_id = ids[(self.roundLC + i) % len_ids]
+            dest_id = ids[(self.c + i) % len_ids]
             self.node.send(dest_id, type="appendEntries", message=(
                     self.currentTerm, # term
                     leaderId, #leaderId
@@ -150,7 +154,7 @@ class SharedState:
                     ) 
             )
         
-        self.roundLC += self.fanout
+        self.c += self.fanout
 
     def create_peer_permutation(self):
         ids = self.node.node_ids()

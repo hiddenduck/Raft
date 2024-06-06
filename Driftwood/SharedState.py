@@ -28,6 +28,8 @@ class SharedState:
         if node != None:
             self.node = node
             self.fanout = int(math_log(len(self.node.node_ids()))) + 1 # fanout + C
+            self.c = 0
+            self.create_peer_permutation()
 
         self.lock = Lock()
 
@@ -77,9 +79,8 @@ class SharedState:
     def sendEntries(self, leaderId, leaderCommit, isRPC=False):
         ids = self.node.node_ids()
         len_ids = len(ids)
-
         for i in range(self.fanout):
-            dest_id = ids[(self.roundLC + i) % len_ids]
+            dest_id = ids[(self.c + i) % len_ids]
             self.node.send(dest_id, type="appendEntries", message=(
                     self.currentTerm, # term
                     leaderId, #leaderId
@@ -91,8 +92,11 @@ class SharedState:
                     isRPC #isRPC
                     ) 
             )
+        
+        self.c += self.fanout
 
     def create_peer_permutation(self):
+        self.c = 0
         ids = self.node.node_ids()
         self.node.set_node_ids([peer for peer in random.sample(ids, len(ids))])
     

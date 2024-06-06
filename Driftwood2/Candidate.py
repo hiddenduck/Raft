@@ -84,8 +84,8 @@ class Candidate(SharedState):
                     self.updateBitmap()
                     self.checkCommitIndex()
 
-                    #if isRPC:
-                    #    self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
+                    if isRPC:
+                        self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
                     if not isRPC:
                         self.roundLC = leaderRound
                         #TODO Gossip request
