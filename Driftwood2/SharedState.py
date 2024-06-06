@@ -4,6 +4,7 @@ from bitarray import bitarray
 # import Node_Timer
 from Node_Timer import Node_Timer
 import random
+from math import log as math_log
 
 class SharedState:
     def __init__(self, node=None, votedFor=None):
@@ -24,12 +25,14 @@ class SharedState:
         # Other
         self.timer = Node_Timer(0.150, 0.300)
 
-        self.node = node
+        # Gossip
+        if node != None:
+            self.node = node
+            self.fanout = int(math_log(len(self.node.node_ids()))) + 1 # fanout + C
+                # New Data Structures
+            self.bitarray = (len(self.node.node_ids())+1) * bitarray('0')
 
-        # New Data Structures
-        self.bitarray = (len(self.node.node_ids())+1) * bitarray('0')
-
-        self.nextCommit = -1
+        self.nextCommit = 0
         self.maxCommit  = -1
 
         self.lock = Lock()
@@ -52,6 +55,8 @@ class SharedState:
 
         self.node = sharedState.node
         self.roundLC = sharedState.roundLC
+
+        self.fanout = sharedState.fanout
 
         self.bitarray = sharedState.bitarray
         self.nextCommit = sharedState.nextCommit
@@ -80,16 +85,18 @@ class SharedState:
             self.kv_store[msg.body.key] = msg.body.value
 
     def checkCommitIndex(self): #isto pode mudar se: log/maxCommit mudar
-        if self.currentTerm == self.log[-1][1]:
+        if  len(self.log) > 0 and \
+            self.currentTerm == self.log[-1][1]:
             self.commitIndex = min(self.maxCommit, len(self.log)-1)
             if self.commitIndex > self.lastApplied:
                 self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
                 self.lastApplied = self.commitIndex
 
     def checkBitmap(self): #isto pode mudar se: log/nextCommit mudar, true se mudou o bitmap
-        if  self.nextCommit < len(self.log) and \
+        if  self.nextCommit >= 0 and \
+            self.nextCommit < len(self.log) and \
             self.log[self.nextCommit][1] == self.currentTerm:
-            self.bitarray.set(int(self.node.node_id()[1:]))
+            self.bitarray[int(self.node.node_id()[1:])] = 1
 
     def newTerm(self, newTerm, votedFor=None):
         self.roundLC = 0
@@ -100,7 +107,7 @@ class SharedState:
         self.checkBitmap()
 
     def updateBitmap(self): #muda possivelmente se bitmap mudar
-        if self.bitarray.count() > (self.bitarray.size() / 2.0):
+        if self.bitarray.count() > ((len(self.node.node_ids())+1) / 2.0):
             self.maxCommit = self.nextCommit
             self.checkCommitIndex()
             self.bitarray.setall(0)
@@ -109,7 +116,7 @@ class SharedState:
                 self.nextCommit = self.nextCommit+1
             else:
                 self.nextCommit = len(self.log)-1
-                self.bitarray.set(int(self.node.node_id()[1:]))
+                self.bitarray[int(self.node.node_id()[1:])] = 1
 
     def mergeBitmap(self, bitarray, maxCommit, nextCommit):
         if maxCommit > self.maxCommit:
@@ -129,7 +136,7 @@ class SharedState:
         ids = self.node.node_ids()
         len_ids = len(ids)
 
-        for i in range(self.funout):
+        for i in range(self.fanout):
             dest_id = ids[(self.roundLC + i) % len_ids]
             self.node.send(dest_id, type="appendEntries", message=(
                     self.currentTerm, # term
@@ -139,13 +146,13 @@ class SharedState:
                     [self.log[i] for i in range(self.commitIndex+1,len(self.log))], # entries[]
                     self.roundLC, #leaderRound
                     isRPC, #isRPC
-                    self.bitarray, #bitmap
+                    self.bitarray.to01(), #bitmap
                     self.maxCommit, #maxCommit
                     self.nextCommit #nextCommit
                     ) 
             )
         
-        self.roundLC += self.funout
+        self.roundLC += self.fanout
 
     def create_peer_permutation(self):
         ids = self.node.node_ids()

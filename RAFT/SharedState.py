@@ -4,7 +4,7 @@ from threading import Lock
 from Node_Timer import Node_Timer
 
 class SharedState:
-    def __init__(self, node=None, votedFor=None):
+    def __init__(self, node, votedFor=None):
         # Lin-kv Store
         self.kv_store = dict()
         self.kv_log_store = dict()

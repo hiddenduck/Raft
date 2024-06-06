@@ -1,5 +1,6 @@
 from SharedState import SharedState
 from node import *
+from bitarray import bitarray
 
 class Leader(SharedState):
     def __init__(self, sharedState):

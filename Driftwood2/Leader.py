@@ -1,5 +1,6 @@
 from SharedState import SharedState
 from node import *
+from bitarray import bitarray
 
 class Leader(SharedState):
     def __init__(self, sharedState):
@@ -82,7 +83,7 @@ class Leader(SharedState):
                 #self.commitIndex, # leaderCommit
                 self.roundLC, #leaderRound
                 True, #isRPC
-                self.bitarray, #bitmap
+                self.bitarray.to01(), #bitmap
                 self.maxCommit, #maxCommit
                 self.nextCommit #nextCommit
                 )
@@ -98,7 +99,8 @@ class Leader(SharedState):
             self.node.reply(msg, type="write_ok" if msg.body.type == "write" else "cas_ok")
 
     def appendEntries(self, msg):
-        term, leaderID, prevLogIndex, prevLogTerm, entries, leaderRound, isRPC, bitmap, maxCommit, nextCommit = tuple(msg.body.message)
+        term, leaderID, prevLogIndex, prevLogTerm, entries, leaderRound, isRPC, bitlist, maxCommit, nextCommit = tuple(msg.body.message)
+        bitmap = bitarray(bitlist)
 
         if term > self.currentTerm: # if a valid leader contacts (no candidate é >= no leader é >)
             self.timer.stop()

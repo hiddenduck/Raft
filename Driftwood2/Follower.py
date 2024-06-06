@@ -1,6 +1,7 @@
 from SharedState import SharedState
 from Candidate import Candidate
 from node import *
+from bitarray import bitarray
 
 class Follower(SharedState):
     def __init__(self, sharedState, leaderMsg = None):
@@ -38,7 +39,8 @@ class Follower(SharedState):
             self.timer.reset()
 
     def appendEntries(self, msg):
-        term, leaderID, prevLogIndex, prevLogTerm, entries, leaderRound, isRPC, bitmap, maxCommit, nextCommit = tuple(msg.body.message)
+        term, leaderID, prevLogIndex, prevLogTerm, entries, leaderRound, isRPC, bitlist, maxCommit, nextCommit = tuple(msg.body.message)
+        bitmap = bitarray(bitlist)
 
         if term > self.currentTerm:
             self.newTerm(term, votedFor=leaderID)

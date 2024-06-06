@@ -24,11 +24,10 @@ class SharedState:
         # Other
         self.timer = Node_Timer(0.150, 0.300)
 
-        self.node = node
-
         # Gossip
         if node != None:
-            self.fanout = int(math_log(len(node.node_ids()))) + 1 # fanout + C
+            self.node = node
+            self.fanout = int(math_log(len(self.node.node_ids()))) + 1 # fanout + C
 
         self.lock = Lock()
 
