@@ -45,16 +45,15 @@ class Follower(SharedState):
 
         if term >= self.currentTerm:
             self.timer.stop()
-            self.merge(bitmap, maxCommit, nextCommit)
+            self.mergeBitmap(bitmap, maxCommit, nextCommit)
             if (isRPC or leaderRound > self.roundLC):
                 if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
-                    success = True
                     if prevLogIndex >= 0:
                         self.log = self.log[:prevLogIndex+1] + entries
                     else:
                         self.log = entries
                     #sempre que o log muda testa-se o commitindex
-                    self.updateCommitIndex()
+                    self.updateBitmap()
 
                     if isRPC:
                         self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)

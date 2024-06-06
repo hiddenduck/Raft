@@ -88,7 +88,7 @@ class SharedState:
         self.votedFor = votedFor
         self.nextCommit = self.maxCommit + 1
 
-    def update(self):
+    def updateBitmap(self):
         if self.bitarray.count() > (self.bitarray.size() / 2.0):
             self.maxCommit = self.nextCommit #sempre que o maxcommit muda testa-se o commit index
             self.updateCommitIndex()
@@ -100,7 +100,7 @@ class SharedState:
                 self.nextCommit = len(self.log)-1
                 self.bitarray.set(int(self.node.node_id()[1:]))
 
-    def merge(self, bitarray, maxCommit, nextCommit):
+    def mergeBitmap(self, bitarray, maxCommit, nextCommit):
         if maxCommit > self.maxCommit:
             self.maxCommit = maxCommit #sempre que o maxcommit muda testa-se o commit index
             self.updateCommitIndex()

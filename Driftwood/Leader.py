@@ -153,15 +153,14 @@ class Leader(SharedState):
         if term > self.currentTerm: # if a valid leader contacts (no candidate é >= no leader é >)
             self.timer.stop()
             self.newTerm(term, votedFor=leaderID)
-            self.merge(bitmap, maxCommit, nextCommit)
+            self.mergeBitmap(bitmap, maxCommit, nextCommit)
             if (isRPC or leaderRound > self.roundLC):
                 if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
                     if prevLogIndex >= 0:
                         self.log = self.log[:prevLogIndex+1] + entries
                     else:
                         self.log = entries
-                    #sempre que o log muda testa-se o commitindex
-                    self.updateCommitIndex()
+                    self.updateBitmap()
 
                     if isRPC:
                         self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
@@ -175,6 +174,9 @@ class Leader(SharedState):
                     self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log)-1, prevLogIndex-1))        
 
             self.becomeFollower()
+        elif term == self.currentTerm:
+            self.mergeBitmap(bitmap, maxCommit, nextCommit)
+            self.updateBitmap()
         else:
             self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=len(self.log)-1)
 
