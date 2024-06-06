@@ -55,9 +55,9 @@ class Follower(SharedState):
                     else:
                         self.log = entries
                     #sempre que o log muda testa-se o commitindex&bitmap
-                    self.checkCommitIndex()
                     self.checkBitmap()
                     self.updateBitmap()
+                    self.checkCommitIndex()
 
                     #if isRPC:
                     #    self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)

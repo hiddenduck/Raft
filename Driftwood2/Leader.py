@@ -44,8 +44,8 @@ class Leader(SharedState):
     def write(self, msg):
         self.log.append((msg, self.currentTerm))
         self.checkBitmap()
-        self.checkCommitIndex()
         self.updateBitmap()
+        self.checkCommitIndex()
     
     def write_redirect(self, msg):
         self.write(msg.body.msg)
@@ -117,9 +117,9 @@ class Leader(SharedState):
                     else:
                         self.log = entries
 
-                    self.checkCommitIndex()
                     self.checkBitmap()
                     self.updateBitmap()
+                    self.checkCommitIndex()
 
                     #if isRPC:
                     #    self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
