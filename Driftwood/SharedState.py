@@ -11,7 +11,7 @@ class SharedState:
         self.kv_log_store = dict()
         
         # Gossip
-        self.funout = 1
+        self.fanout = 1
 
         # Persistent state
         self.currentTerm = 0
@@ -72,11 +72,10 @@ class SharedState:
             self.kv_store[msg.body.key] = msg.body.value
 
     def sendEntries(self, leaderId, leaderCommit, isRPC=False):
-        self.roundLC += 1
         ids = self.node.node_ids()
         len_ids = len(ids)
 
-        for i in range(self.funout):
+        for i in range(self.fanout):
             dest_id = ids[(self.roundLC + i) % len_ids]
             self.node.send(dest_id, type="appendEntries", message=(
                     self.currentTerm, # term
@@ -89,8 +88,6 @@ class SharedState:
                     isRPC #isRPC
                     ) 
             )
-        
-        self.roundLC += self.funout
 
     def create_peer_permutation(self):
         ids = self.node.node_ids()
