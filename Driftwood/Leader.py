@@ -169,14 +169,14 @@ class Leader(SharedState):
                         #TODO Gossip request
                         undefined
                     else:
-                        self.node.reply(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log))
+                        self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log))
                 else:
                     self.log = entries[:prevLogIndex]    
-                    self.node.reply(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
+                    self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
 
             self.becomeFollower()
         else:
-            self.node.reply(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
+            self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
 
     def requestVote(self, msg):
         term = msg.body.term
