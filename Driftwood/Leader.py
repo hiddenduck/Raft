@@ -180,6 +180,8 @@ class Leader(SharedState):
                 self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
 
             self.becomeFollower()
+        else:
+            self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
 
     def requestVote(self, msg):
         term = msg.body.term
