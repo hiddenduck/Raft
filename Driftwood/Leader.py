@@ -14,7 +14,7 @@ class Leader(SharedState):
             self.nextIndex[node] = len(self.log)
             self.matchIndex[node] = -1
         
-        self.sendEntries(True)
+        self.sendEntries()
         self.timer.a = 0.05
         self.timer.b = 0.05
         self.timer.create(lambda s: s.heartbeat(), self)
