@@ -1,0 +1,52 @@
+3	:invoke	:cas	[0 [2 3]]
+1	:invoke	:read	[0 nil]
+4	:invoke	:cas	[0 [0 4]]
+5	:invoke	:cas	[0 [2 1]]
+0	:invoke	:read	[0 nil]
+2	:invoke	:read	[0 nil]
+3	:info	:cas	[0 [2 3]]	:net-timeout
+9	:invoke	:write	[0 0]
+1	:fail	:read	[0 nil]	:net-timeout
+1	:invoke	:read	[0 nil]
+4	:info	:cas	[0 [0 4]]	:net-timeout
+10	:invoke	:write	[0 2]
+5	:info	:cas	[0 [2 1]]	:net-timeout
+11	:invoke	:write	[0 0]
+0	:fail	:read	[0 nil]	:net-timeout
+0	:invoke	:read	[0 nil]
+2	:fail	:read	[0 nil]	:net-timeout
+2	:invoke	:read	[0 nil]
+9	:info	:write	[0 0]	:net-timeout
+1	:fail	:read	[0 nil]	:net-timeout
+15	:invoke	:write	[0 0]
+1	:invoke	:read	[0 nil]
+10	:info	:write	[0 2]	:net-timeout
+16	:invoke	:cas	[0 [1 4]]
+11	:info	:write	[0 0]	:net-timeout
+17	:invoke	:write	[0 2]
+0	:fail	:read	[0 nil]	:net-timeout
+0	:invoke	:read	[0 nil]
+2	:fail	:read	[0 nil]	:net-timeout
+2	:invoke	:read	[0 nil]
+15	:info	:write	[0 0]	:net-timeout
+1	:fail	:read	[0 nil]	:net-timeout
+21	:invoke	:write	[0 3]
+1	:invoke	:read	[0 nil]
+16	:info	:cas	[0 [1 4]]	:net-timeout
+17	:info	:write	[0 2]	:net-timeout
+22	:invoke	:cas	[0 [3 4]]
+0	:fail	:read	[0 nil]	:net-timeout
+0	:invoke	:read	[0 nil]
+2	:fail	:read	[0 nil]	:net-timeout
+23	:invoke	:write	[0 1]
+2	:invoke	:read	[0 nil]
+21	:info	:write	[0 3]	:net-timeout
+1	:fail	:read	[0 nil]	:net-timeout
+27	:invoke	:cas	[0 [2 2]]
+22	:info	:cas	[0 [3 4]]	:net-timeout
+28	:invoke	:cas	[0 [2 0]]
+0	:fail	:read	[0 nil]	:net-timeout
+23	:info	:write	[0 1]	:net-timeout
+2	:fail	:read	[0 nil]	:net-timeout
+27	:info	:cas	[0 [2 2]]	:net-timeout
+28	:info	:cas	[0 [2 0]]	:net-timeout
