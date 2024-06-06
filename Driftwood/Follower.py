@@ -52,7 +52,9 @@ class Follower(SharedState):
                         self.log = self.log[:prevLogIndex+1] + entries
                     else:
                         self.log = entries
-                    #sempre que o log muda testa-se o commitindex
+                    #sempre que o log muda testa-se o commitindex&bitmap
+                    self.checkCommitIndex()
+                    self.checkBitmap()
                     self.updateBitmap()
 
                     if isRPC:

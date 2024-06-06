@@ -78,6 +78,8 @@ class Candidate(SharedState):
                     else:
                         self.log = entries
                     #sempre que o log muda testa-se o commitindex
+                    self.checkCommitIndex()
+                    self.checkBitmap()
                     self.updateBitmap()
 
                     if isRPC:

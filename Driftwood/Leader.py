@@ -84,39 +84,9 @@ class Leader(SharedState):
 
     def cas_redirect(self, msg):
         self.cas(msg.body.msg)
-                
+
     def appendEntries_success(self, msg):
-        self.nextIndex[msg.src]  = msg.body.lastLogIndex+1
-        self.matchIndex[msg.src] = msg.body.lastLogIndex
-
-        # Detect Majority
-
-        count = 0
-        candidate = None
-
-        for replica in self.matchIndex.keys():
-            if count == 0:
-                candidate = self.matchIndex[replica]
-                count = 1
-            else:
-                count = count+1 if self.matchIndex[replica] == candidate else count-1
-        
-        count = 0
-
-        if candidate == self.commitIndex:
-            return
-
-        for replica in self.matchIndex.keys():
-            if self.matchIndex[replica] == candidate:
-                count += 1
-        
-        if  count > len(self.matchIndex.keys())/2.0 and \
-            candidate > self.commitIndex and self.log[candidate][1] == self.currentTerm:
-            for toBeCommited in self.log[self.commitIndex+1:candidate+1]:
-                body = toBeCommited[0].body
-                self.kv_store[body.key] = body.value
-                self.node.reply(toBeCommited[0], type="write_ok" if body.type == "write" else "cas_ok")
-            self.commitIndex = candidate
+        True
 
     def appendEntries_insuccess(self, msg):
         dest_id = msg.src
@@ -131,7 +101,7 @@ class Leader(SharedState):
                 [self.log[i] for i in range(lastLogIndex+1,len(self.log))], # entries[]
                 #self.commitIndex, # leaderCommit
                 self.roundLC, #leaderRound
-                False, #isRPC
+                True, #isRPC
                 self.bitarray, #bitmap
                 self.maxCommit, #maxCommit
                 self.nextCommit #nextCommit
@@ -146,6 +116,7 @@ class Leader(SharedState):
     def applyLogEntries(self, entries):
         for (msg, _) in entries:
             self.kv_store[msg.body.key] = msg.body.value
+            self.node.reply(msg, type="write_ok" if msg.body.type == "write" else "cas_ok")
 
     def appendEntries(self, msg):
         term, leaderID, prevLogIndex, prevLogTerm, entries, leaderRound, isRPC, bitmap, maxCommit, nextCommit = tuple(msg.body.message)
@@ -160,6 +131,9 @@ class Leader(SharedState):
                         self.log = self.log[:prevLogIndex+1] + entries
                     else:
                         self.log = entries
+
+                    self.checkCommitIndex()
+                    self.checkBitmap()
                     self.updateBitmap()
 
                     if isRPC:
@@ -171,7 +145,7 @@ class Leader(SharedState):
                     
                 else:
                     self.log = entries[:prevLogIndex]
-                    self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log)-1, prevLogIndex-1))        
+                    self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log)-1, prevLogIndex-1))
 
             self.becomeFollower()
         elif term == self.currentTerm:

@@ -74,12 +74,17 @@ class SharedState:
         for (msg, _) in entries:
             self.kv_store[msg.body.key] = msg.body.value
 
-    def updateCommitIndex(self):
+    def checkCommitIndex(self): #isto pode mudar se: log/maxCommit mudar
         if self.currentTerm == self.log[-1][1]:
             self.commitIndex = min(self.maxCommit, len(self.log)-1)
             if self.commitIndex > self.lastApplied:
                 self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
                 self.lastApplied = self.commitIndex
+
+    def checkBitmap(self): #isto pode mudar se: log/nextCommit mudar, true se mudou o bitmap
+        if  self.nextCommit < len(self.log) and \
+            self.log[self.nextCommit][1] == self.currentTerm:
+            self.bitarray.set(int(self.node.node_id()[1:]))
 
     def newTerm(self, newTerm, votedFor=None):
         self.roundLC = 0
@@ -87,11 +92,12 @@ class SharedState:
         self.bitarray.setall(0)
         self.votedFor = votedFor
         self.nextCommit = self.maxCommit + 1
+        self.checkBitmap()
 
-    def updateBitmap(self):
+    def updateBitmap(self): #muda possivelmente se bitmap mudar
         if self.bitarray.count() > (self.bitarray.size() / 2.0):
-            self.maxCommit = self.nextCommit #sempre que o maxcommit muda testa-se o commit index
-            self.updateCommitIndex()
+            self.maxCommit = self.nextCommit
+            self.checkCommitIndex()
             self.bitarray.setall(0)
             if self.nextCommit >= len(self.log)-1 or \
                self.currentTerm != self.log[-1][1]:
@@ -103,10 +109,13 @@ class SharedState:
     def mergeBitmap(self, bitarray, maxCommit, nextCommit):
         if maxCommit > self.maxCommit:
             self.maxCommit = maxCommit #sempre que o maxcommit muda testa-se o commit index
-            self.updateCommitIndex()
+            self.checkCommitIndex()
         if self.nextCommit <= self.maxCommit:
             self.bitarray = bitarray
             self.nextCommit = nextCommit
+            self.checkBitmap()
+            self.updateBitmap()
         elif self.nextCommit <= nextCommit:
             self.bitarray |= bitarray
+            self.updateBitmap()
     
