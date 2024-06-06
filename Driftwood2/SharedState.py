@@ -157,5 +157,6 @@ class SharedState:
         self.c += self.fanout
 
     def create_peer_permutation(self):
+        self.c = 0
         ids = self.node.node_ids()
         self.node.set_node_ids([peer for peer in random.sample(ids, len(ids))])
