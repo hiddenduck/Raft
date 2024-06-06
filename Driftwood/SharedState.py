@@ -53,6 +53,8 @@ class SharedState:
         self.roundLC = sharedState.roundLC
 
         self.fanout = sharedState.fanout
+
+        self.c = sharedState.c
     
     def read(self, msg):
         if self.votedFor != None and self.votedFor != self.node.node_id():
