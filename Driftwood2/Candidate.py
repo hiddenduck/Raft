@@ -68,7 +68,7 @@ class Candidate(SharedState):
     def appendEntries(self, msg):
         term, leaderID, prevLogIndex, prevLogTerm, entries, leaderRound, isRPC, bitlist, maxCommit, nextCommit = tuple(msg.body.message)
         bitmap = bitarray(bitlist)
-        
+
         if term >= self.currentTerm: # if a valid leader contacts (no candidate é >= no leader é >)
             self.timer.stop()
             self.newTerm(term, votedFor=leaderID)
@@ -84,9 +84,9 @@ class Candidate(SharedState):
                     self.checkBitmap()
                     self.updateBitmap()
 
-                    if isRPC:
-                        self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
-                    else:
+                    #if isRPC:
+                    #    self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
+                    if not isRPC:
                         self.roundLC = leaderRound
                         #TODO Gossip request
                         self.sendEntries(leaderID)

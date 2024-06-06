@@ -59,9 +59,9 @@ class Follower(SharedState):
                     self.checkBitmap()
                     self.updateBitmap()
 
-                    if isRPC:
-                        self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
-                    else:
+                    #if isRPC:
+                    #    self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
+                    if not isRPC:
                         self.roundLC = leaderRound
                         #TODO Gossip request
                         self.sendEntries(leaderID)

@@ -132,10 +132,8 @@ class SharedState:
             self.updateBitmap()
     
     def sendEntries(self, leaderId, isRPC=False):
-        self.roundLC += 1
         ids = self.node.node_ids()
         len_ids = len(ids)
-
         for i in range(self.fanout):
             dest_id = ids[(self.roundLC + i) % len_ids]
             self.node.send(dest_id, type="appendEntries", message=(
