@@ -38,8 +38,7 @@ class Follower(SharedState):
             self.timer.reset()
 
     def appendEntries(self, msg):
-        term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit, leaderRound, isRPC, bitmap, maxCommit, nextCommit = tuple(msg.body.message)
-        success = False
+        term, leaderID, prevLogIndex, prevLogTerm, entries, leaderRound, isRPC, bitmap, maxCommit, nextCommit = tuple(msg.body.message)
 
         if term > self.currentTerm:
             self.newTerm(term, votedFor=leaderID)
@@ -54,20 +53,21 @@ class Follower(SharedState):
                         self.log = self.log[:prevLogIndex+1] + entries
                     else:
                         self.log = entries
+                    #sempre que o log muda testa-se o commitindex
+                    self.updateCommitIndex()
+
+                    if isRPC:
+                        self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
+                    else:
+                        self.roundLC = leaderRound
+                        #TODO Gossip request
+                        undefined
                     
                 else:
                     self.log = entries[:prevLogIndex]
+                    self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log)-1, prevLogIndex-1))
 
-                #sempre que o log muda testa-se o commitindex
-                self.updateCommitIndex()
             self.timer.reset()
-
-        if not success:
-            self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log)-1, prevLogIndex-1))
-        elif not isRPC:
-            self.roundLC = leaderRound
-            #TODO Gossip request
-            undefined
         else:
-            self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
+            self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=len(self.log)-1)
                 

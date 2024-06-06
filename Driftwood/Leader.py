@@ -31,7 +31,7 @@ class Leader(SharedState):
                     self.commitIndex, # prevLogIndex
                     self.log[self.commitIndex+1][1] if self.commitIndex+1 >= 0 else -1, # prevLogTerm
                     [self.log[i] for i in range(self.commitIndex+1,len(self.log))], # entries[]
-                    self.commitIndex, # leaderCommit
+                    #self.commitIndex, # leaderCommit
                     self.roundLC, #leaderRound
                     isRPC, #isRPC
                     self.bitarray, #bitmap
@@ -129,7 +129,7 @@ class Leader(SharedState):
                 lastLogIndex, # prevLogIndex
                 self.log[lastLogIndex][1] if lastLogIndex >= 0 else -1, # prevLogTerm
                 [self.log[i] for i in range(lastLogIndex+1,len(self.log))], # entries[]
-                self.commitIndex, # leaderCommit
+                #self.commitIndex, # leaderCommit
                 self.roundLC, #leaderRound
                 False, #isRPC
                 self.bitarray, #bitmap
@@ -148,40 +148,35 @@ class Leader(SharedState):
             self.kv_store[msg.body.key] = msg.body.value
 
     def appendEntries(self, msg):
-        term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit, leaderRound, isRPC, bitmap, maxCommit, nextCommit = tuple(msg.body.message)
-        success = False
-        changedType = False
+        term, leaderID, prevLogIndex, prevLogTerm, entries, leaderRound, isRPC, bitmap, maxCommit, nextCommit = tuple(msg.body.message)
 
         if term > self.currentTerm: # if a valid leader contacts (no candidate é >= no leader é >)
             self.timer.stop()
-            changedType = True
             self.newTerm(term, votedFor=leaderID)
             self.merge(bitmap, maxCommit, nextCommit)
             if (isRPC or leaderRound > self.roundLC):
                 if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
-                    success = True
                     if prevLogIndex >= 0:
                         self.log = self.log[:prevLogIndex+1] + entries
                     else:
                         self.log = entries
+                    #sempre que o log muda testa-se o commitindex
+                    self.updateCommitIndex()
+
+                    if isRPC:
+                        self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
+                    else:
+                        self.roundLC = leaderRound
+                        #TODO Gossip request
+                        undefined
                     
                 else:
                     self.log = entries[:prevLogIndex]
+                    self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log)-1, prevLogIndex-1))        
 
-                #sempre que o log muda testa-se o commitindex
-                self.updateCommitIndex()
-
-        if not success:
-            self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log)-1, prevLogIndex-1))
-        elif not isRPC:
-            self.roundLC = leaderRound
-            #TODO Gossip request
-            undefined
-        else:
-            self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
-            
-        if changedType:
             self.becomeFollower()
+        else:
+            self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=len(self.log)-1)
 
     def requestVote(self, msg):
         term = msg.body.term
