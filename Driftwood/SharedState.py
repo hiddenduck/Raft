@@ -81,7 +81,6 @@ class SharedState:
                 self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
                 self.lastApplied = self.commitIndex
 
-    #TODO colocar isto como forma de atualizar o termo, ver se há mais coisas a dar reset
     def newTerm(self, newTerm, votedFor=None):
         self.roundLC = 0
         self.currentTerm = newTerm

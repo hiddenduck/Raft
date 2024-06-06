@@ -38,35 +38,36 @@ class Follower(SharedState):
             self.timer.reset()
 
     def appendEntries(self, msg):
-        term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit, leaderRound, isRPC = tuple(msg.body.message)
+        term, leaderID, prevLogIndex, prevLogTerm, entries, leaderCommit, leaderRound, isRPC, bitmap, maxCommit, nextCommit = tuple(msg.body.message)
+        success = False
 
         if term > self.currentTerm:
             self.newTerm(term, votedFor=leaderID)
 
         if term >= self.currentTerm:
+            self.timer.stop()
+            self.merge(bitmap, maxCommit, nextCommit)
             if (isRPC or leaderRound > self.roundLC):
-                self.timer.stop()
                 if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):
+                    success = True
                     if prevLogIndex >= 0:
                         self.log = self.log[:prevLogIndex+1] + entries
                     else:
                         self.log = entries
-                    self.node.reply(msg, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log))
+                    
                 else:
                     self.log = entries[:prevLogIndex]
-                    self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
 
                 #sempre que o log muda testa-se o commitindex
                 self.updateCommitIndex()
+            self.timer.reset()
 
-                if not isRPC:
-                    self.roundLC = leaderRound
-                    #TODO Gossip request
-                    undefined
+        if not success:
+            self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log)-1, prevLogIndex-1))
+        elif not isRPC:
+            self.roundLC = leaderRound
+            #TODO Gossip request
+            undefined
+        else:
+            self.node.reply(msg, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
                 
-                self.timer.reset()
-
-            elif isRPC:
-                self.timer.stop()
-                self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
-                self.timer.reset()
