@@ -12,6 +12,7 @@ class Leader(SharedState):
         self.nextIndex = {}
         self.matchIndex = {}
 
+        self.c = 0
         self.create_peer_permutation()
 
         for node in self.node.node_ids():
@@ -19,7 +20,8 @@ class Leader(SharedState):
             self.matchIndex[node] = -1
         
         self.sendEntries(self.node.node_id(), self.commitIndex)
-        self.roundLC += self.fanout
+        self.c       += self.fanout
+        self.roundLC += 1
         self.timer.a = 0.05
         self.timer.b = 0.05
         self.timer.create(lambda s: s.heartbeat(), self)
@@ -31,7 +33,8 @@ class Leader(SharedState):
         with lock:
             if self.node.active_class == self:
                 self.sendEntries(self.node.node_id(), self.commitIndex)
-                self.roundLC += self.fanout
+                self.c       += self.fanout
+                self.roundLC += 1
             self.timer.reset()
 
     def read(self, msg):
@@ -122,6 +125,7 @@ class Leader(SharedState):
                 )
         else:
             self.timer.stop()
+            self.c       = 0
             self.roundLC = 0
             self.create_peer_permutation()
             self.currentTerm = msg.body.term
@@ -138,6 +142,7 @@ class Leader(SharedState):
             self.timer.stop()
             self.currentTerm = term
             self.roundLC = 0
+            self.c       = 0
             self.create_peer_permutation()
             self.votedFor = leaderID
             
@@ -175,6 +180,7 @@ class Leader(SharedState):
             self.timer.stop()
             self.currentTerm = term
             self.roundLC = 0
+            self.c       = 0
             self.create_peer_permutation()
 
             if  len(self.log) > 0 and \
