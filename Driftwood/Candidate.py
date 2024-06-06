@@ -91,14 +91,14 @@ class Candidate(SharedState):
                         #TODO Gossip request
                         undefined
                     else:
-                        self.node.reply(msg, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log))
+                        self.node.reply(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log))
                 else:
                     self.log = entries[:prevLogIndex]    
-                    self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
+                    self.node.reply(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
 
             self.becomeFollower()
         else:
-            self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
+            self.node.reply(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
 
     #Estas funções têm de ser sempre as últimas a serem invocadas num método (garantir que houve troca)
     def becomeFollower(self, votedFor=None):
