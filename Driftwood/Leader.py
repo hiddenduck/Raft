@@ -11,39 +11,25 @@ class Leader(SharedState):
         self.votedFor = None
         self.nextIndex = {}
         self.matchIndex = {}
+
+        self.create_peer_permutation()
+
         for node in self.node.node_ids():
             self.nextIndex[node] = len(self.log)
             self.matchIndex[node] = -1
         
-        self.sendEntries(True)
+        self.sendEntries(self.node_id(), self.commitIndex, True)
         self.timer.a = 0.05
         self.timer.b = 0.05
         self.timer.create(lambda s: s.heartbeat(), self)
-        self.timer.start()
-    
-    def sendEntries(self, isRPC=False):
-        self.roundLC += 1
-        #TODO tornar este envio num gossip só para alguns
-        for dest_id in self.node.node_ids():
-            if len(self.log) >= self.nextIndex[dest_id]:
-                self.node.send(dest_id, type="appendEntries", message=(
-                    self.currentTerm, # term
-                    self.node.node_id(), #leaderId
-                    self.commitIndex, # prevLogIndex
-                    self.log[self.commitIndex+1][1] if self.commitIndex+1 >= 0 else -1, # prevLogTerm
-                    [self.log[i] for i in range(self.commitIndex+1,len(self.log))], # entries[]
-                    self.commitIndex, # leaderCommit
-                    self.roundLC, #leaderRound
-                    isRPC #isRPC
-                    ) 
-                )
+        self.timer.start()        
 
     def heartbeat(self):
         self.node.log('Heartbeat Sent')
         lock = self.lock
         with lock:
             if self.node.active_class == self:
-                self.sendEntries()
+                self.sendEntries(self.node_id(), self.commitIndex)
             self.timer.reset()
 
     def read(self, msg):
@@ -135,6 +121,7 @@ class Leader(SharedState):
         else:
             self.timer.stop()
             self.roundLC = 0
+            self.create_peer_permutation()
             self.currentTerm = msg.body.term
             self.becomeFollower()
 
@@ -150,6 +137,7 @@ class Leader(SharedState):
             self.timer.stop()
             self.currentTerm = term
             self.roundLC = 0
+            self.create_peer_permutation()
             self.votedFor = leaderID
             
             if (isRPC or leaderRound > self.roundLC):
@@ -167,12 +155,12 @@ class Leader(SharedState):
                     if not isRPC:
                         self.roundLC = leaderRound
                         #TODO Gossip request
-                        undefined
+                        self.sendEntries(self.node_id(), self.commitIndex)
                     else:
                         self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log))
-                else:
-                    self.log = entries[:prevLogIndex]    
-                    self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
+                
+                self.log = entries[:prevLogIndex]    
+                self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
 
             self.becomeFollower()
         else:
@@ -185,12 +173,13 @@ class Leader(SharedState):
             self.timer.stop()
             self.currentTerm = term
             self.roundLC = 0
+            self.create_peer_permutation()
 
             if  len(self.log) > 0 and \
                 (msg.body.lastLogTerm < self.log[-1][1] or \
                 (msg.body.lastLogTerm == self.log[-1][1] and msg.body.lastLogIndex < len(self.log))):
                 #Não devíamos responder se não vai mudar em nada
-                self.node.reply(msg, type='handleVote', term=term, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
+                self.node.reply(msg, type='handleVote', term=term, voteGranted=False)
                 self.votedFor = None
             else:
                 self.node.reply(msg, type='handleVote', term=term, voteGranted=True)

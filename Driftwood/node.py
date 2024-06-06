@@ -34,6 +34,10 @@ class Node():
     def node_ids(self):
         """Returns list of ids of nodes in the cluster"""
         return self._node_ids
+    
+    def set_node_ids(self, node_ids):
+        """sets list of ids of nodes in the cluster"""
+        self._node_ids = node_ids
 
     def log(self, data, end='\n'):
         """Writes to stderr."""

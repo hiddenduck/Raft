@@ -8,7 +8,6 @@ class Follower(SharedState):
         # Set State
         super().changeState(sharedState)
         #Volatile State
-
         self.timer.create(lambda s: s.startElection(), self)
         self.timer.start()
 
@@ -36,6 +35,7 @@ class Follower(SharedState):
             self.votedFor = msg.src
             self.currentTerm = term
             self.roundLC = 0
+            self.create_peer_permutation()
             self.node.reply(msg, type='handleVote', term=term, voteGranted=True)
             self.timer.reset()
 
@@ -45,6 +45,7 @@ class Follower(SharedState):
         if term > self.currentTerm:
             self.currentTerm = term
             self.roundLC = 0
+            self.create_peer_permutation()
             self.votedFor = leaderID
 
         if term >= self.currentTerm:
@@ -64,15 +65,15 @@ class Follower(SharedState):
 
                     if not isRPC:
                         self.roundLC = leaderRound
-                        #TODO Gossip request
-                        undefined
+                        self.node.sendEntries(leaderID, leaderCommit)
                     else:
                         self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log))
 
-                else:
-                    self.log = entries[:prevLogIndex]
-                    self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
+                
+                self.log = entries[:prevLogIndex]
+                self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
 
                 self.timer.reset()
+            
         else:
             self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))

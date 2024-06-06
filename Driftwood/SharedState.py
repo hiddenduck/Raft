@@ -2,6 +2,7 @@ from node import *
 from threading import Lock
 # import Node_Timer
 from Node_Timer import Node_Timer
+import random
 
 class SharedState:
     def __init__(self, node=None):
@@ -9,6 +10,9 @@ class SharedState:
         self.kv_store = dict()
         self.kv_log_store = dict()
         
+        # Gossip
+        self.funout = 5
+
         # Persistent state
         self.currentTerm = 0
         self.votedFor = None
@@ -66,4 +70,29 @@ class SharedState:
     def applyLogEntries(self, entries):
         for (msg, _) in entries:
             self.kv_store[msg.body.key] = msg.body.value
+
+    def sendEntries(self, leaderId, leaderCommit, isRPC=False):
+        self.roundLC += 1
+        ids = self.node.node_ids()
+        len_ids = len(ids)
+
+        for i in range(self.funout):
+            dest_id = ids[(self.roundLC + i) % len_ids]
+            self.node.send(dest_id, type="appendEntries", message=(
+                    self.currentTerm, # term
+                    leaderId, #leaderId
+                    self.commitIndex, # prevLogIndex
+                    self.log[self.commitIndex+1][1] if self.commitIndex+1 >= 0 else -1, # prevLogTerm
+                    [self.log[i] for i in range(self.commitIndex+1,len(self.log))], # entries[]
+                    leaderCommit, # leaderCommit
+                    self.roundLC, #leaderRound
+                    isRPC #isRPC
+                    ) 
+            )
+        
+        self.roundLC += self.funout
+
+    def create_peer_permutation(self):
+        ids = self.node.node_ids()
+        self.node.set_node_ids([peer for peer in random.sample(ids, len(ids))])
     
