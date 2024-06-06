@@ -8,7 +8,7 @@ class Leader(SharedState):
         # set State
         super().changeState(sharedState)
         # Volatile state
-        self.roundLC = 0
+        self.roundLC = 1
         self.nextIndex = {}
         self.matchIndex = {}
         for node in self.node.node_ids():
