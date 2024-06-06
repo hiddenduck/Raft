@@ -89,7 +89,7 @@ class SharedState:
             self.currentTerm == self.log[-1][1]:
             self.commitIndex = min(self.maxCommit, len(self.log)-1)
             if self.commitIndex > self.lastApplied:
-                self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
+                self.applyLogEntries(self.log[self.lastApplied+1:self.commitIndex+1])
                 self.lastApplied = self.commitIndex
 
     def checkBitmap(self): #isto pode mudar se: log/nextCommit mudar, true se mudou o bitmap
@@ -99,12 +99,12 @@ class SharedState:
             self.bitarray[int(self.node.node_id()[1:])] = 1
 
     def newTerm(self, newTerm, votedFor=None):
+        self.create_peer_permutation()
         self.roundLC = 0
         self.currentTerm = newTerm
         self.bitarray.setall(0)
         self.votedFor = votedFor
         self.nextCommit = self.maxCommit + 1
-        self.checkBitmap()
 
     def updateBitmap(self): #muda possivelmente se bitmap mudar
         if self.bitarray.count() > ((len(self.node.node_ids())+1) / 2.0):
