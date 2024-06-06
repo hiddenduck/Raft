@@ -18,7 +18,7 @@ class Leader(SharedState):
             self.nextIndex[node] = len(self.log)
             self.matchIndex[node] = -1
         
-        self.sendEntries(self.node_id(), self.commitIndex, True)
+        self.sendEntries(self.node.node_id(), self.commitIndex, True)
         self.timer.a = 0.05
         self.timer.b = 0.05
         self.timer.create(lambda s: s.heartbeat(), self)
@@ -29,7 +29,7 @@ class Leader(SharedState):
         lock = self.lock
         with lock:
             if self.node.active_class == self:
-                self.sendEntries(self.node_id(), self.commitIndex)
+                self.sendEntries(self.node.node_id(), self.commitIndex)
             self.timer.reset()
 
     def read(self, msg):
@@ -155,16 +155,17 @@ class Leader(SharedState):
                     if not isRPC:
                         self.roundLC = leaderRound
                         #TODO Gossip request
-                        self.sendEntries(self.node_id(), self.commitIndex)
-                    else:
-                        self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log))
+                        self.sendEntries(self.node.node_id(), self.commitIndex)
+                    
+                    self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
                 
-                self.log = entries[:prevLogIndex]    
-                self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
+                else:
+                    self.log = entries[:prevLogIndex]    
+                    self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log)-1, prevLogIndex-1))
 
             self.becomeFollower()
-        else:
-            self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
+        elif leaderID != self.node.node_id():
+            self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log)-1, prevLogIndex-1))
 
     def requestVote(self, msg):
         term = msg.body.term

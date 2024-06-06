@@ -11,7 +11,7 @@ class SharedState:
         self.kv_log_store = dict()
         
         # Gossip
-        self.funout = 5
+        self.funout = 1
 
         # Persistent state
         self.currentTerm = 0
@@ -82,7 +82,7 @@ class SharedState:
                     self.currentTerm, # term
                     leaderId, #leaderId
                     self.commitIndex, # prevLogIndex
-                    self.log[self.commitIndex+1][1] if self.commitIndex+1 >= 0 else -1, # prevLogTerm
+                    self.log[self.commitIndex][1] if self.commitIndex >= 0 else -1, # prevLogTerm
                     [self.log[i] for i in range(self.commitIndex+1,len(self.log))], # entries[]
                     leaderCommit, # leaderCommit
                     self.roundLC, #leaderRound

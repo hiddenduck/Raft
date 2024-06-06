@@ -65,15 +65,14 @@ class Follower(SharedState):
 
                     if not isRPC:
                         self.roundLC = leaderRound
-                        self.node.sendEntries(leaderID, leaderCommit)
-                    else:
-                        self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log))
-
-                
-                self.log = entries[:prevLogIndex]
-                self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
+                        self.sendEntries(leaderID, leaderCommit)
+                    
+                    self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
+                else:
+                    self.log = entries[:prevLogIndex]
+                    self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log)-1, prevLogIndex-1))
 
                 self.timer.reset()
             
         else:
-            self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log), prevLogIndex-1))
+            self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log)-1, prevLogIndex-1))
