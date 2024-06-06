@@ -3,6 +3,7 @@ from threading import Lock
 # import Node_Timer
 from Node_Timer import Node_Timer
 import random
+from math import log as math_log
 
 class SharedState:
     def __init__(self, node=None, votedFor=None):
@@ -10,9 +11,6 @@ class SharedState:
         self.kv_store = dict()
         self.kv_log_store = dict()
         
-        # Gossip
-        self.fanout = 2
-
         # Persistent state
         self.currentTerm = 0
         self.votedFor = votedFor
@@ -27,6 +25,10 @@ class SharedState:
         self.timer = Node_Timer(0.150, 0.300)
 
         self.node = node
+
+        # Gossip
+        if node != None:
+            self.fanout = int(math_log(len(node.node_ids()))) + 1 # fanout + C
 
         self.lock = Lock()
 
@@ -48,6 +50,8 @@ class SharedState:
 
         self.node = sharedState.node
         self.roundLC = sharedState.roundLC
+
+        self.fanout = sharedState.fanout
     
     def read(self, msg):
         if self.votedFor != None and self.votedFor != self.node.node_id():
