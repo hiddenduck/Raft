@@ -178,7 +178,7 @@ class Leader(SharedState):
             #TODO Gossip request
             undefined
         else:
-            self.node.reply(msg, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
+            self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
             
         if changedType:
             self.becomeFollower()
