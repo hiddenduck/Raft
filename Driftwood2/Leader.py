@@ -43,6 +43,9 @@ class Leader(SharedState):
     
     def write(self, msg):
         self.log.append((msg, self.currentTerm))
+        self.checkBitmap()
+        self.checkCommitIndex()
+        self.updateBitmap()
     
     def write_redirect(self, msg):
         self.write(msg.body.msg)
