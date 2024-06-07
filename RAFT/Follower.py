@@ -62,11 +62,12 @@ class Follower(SharedState):
                     self.commitIndex = min(leaderCommit, len(self.log)-1)
                     self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
                     self.lastApplied = self.commitIndex
+                
+                if entries or prevLogIndex != len(self.log)-1:
+                    self.node.reply(msg, type="appendEntries_success", term=self.currentTerm, nextIndex=len(self.log))
 
             self.timer.reset()
 
-        if success:
-            self.node.reply(msg, type="appendEntries_success", term=self.currentTerm, nextIndex=len(self.log))
-        else:
+        if not success:
             self.node.reply(msg, type="appendEntries_insuccess", term=self.currentTerm, nextIndex=len(self.log))
 
