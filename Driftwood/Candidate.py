@@ -37,6 +37,7 @@ class Candidate(SharedState):
             self.timer.stop()
             self.currentTerm = term
             self.roundLC = 0
+            self.create_peer_permutation()
 
             if  len(self.log) > 0 and \
                 (msg.body.lastLogTerm < self.log[-1][1] or \
@@ -73,6 +74,7 @@ class Candidate(SharedState):
             self.currentTerm = term
             self.roundLC = 0
             self.votedFor = leaderID
+            self.create_peer_permutation()
             
             if (isRPC or leaderRound > self.roundLC):
                 if len(self.log) > prevLogIndex and (prevLogIndex < 0 or self.log[prevLogIndex][1] == prevLogTerm):                    
@@ -93,7 +95,7 @@ class Candidate(SharedState):
                     
                     self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
                 else:
-                    self.log = entries[:prevLogIndex]    
+                    self.log = self.log[:prevLogIndex]    
                     self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log)-1, prevLogIndex-1))
 
             self.becomeFollower()

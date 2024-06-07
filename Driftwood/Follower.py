@@ -24,6 +24,12 @@ class Follower(SharedState):
     def requestVote(self, msg):
         term = msg.body.term
 
+        if term > self.currentTerm:
+            self.currentTerm = term
+            self.votedFor = None
+            self.roundLC = 0
+            self.create_peer_permutation()
+
         if  term < self.currentTerm or \
             (term == self.currentTerm and self.votedFor != None and self.votedFor != msg.src) or \
             (len(self.log) > 0 and \
@@ -33,9 +39,6 @@ class Follower(SharedState):
         else:
             self.timer.stop()
             self.votedFor = msg.src
-            self.currentTerm = term
-            self.roundLC = 0
-            self.create_peer_permutation()
             self.node.reply(msg, type='handleVote', term=term, voteGranted=True)
             self.timer.reset()
 
@@ -69,7 +72,7 @@ class Follower(SharedState):
                     
                     self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
                 else:
-                    self.log = entries[:prevLogIndex]
+                    self.log = self.log[:prevLogIndex]
                     self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log)-1, prevLogIndex-1))
 
                 self.timer.reset()

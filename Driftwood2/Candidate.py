@@ -92,7 +92,7 @@ class Candidate(SharedState):
                         self.sendEntries(leaderID)
                     
                 else:
-                    self.log = entries[:prevLogIndex]
+                    self.log = self.log[:prevLogIndex]
                     self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log)-1, prevLogIndex-1))        
 
             self.becomeFollower()

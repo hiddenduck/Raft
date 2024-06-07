@@ -24,6 +24,10 @@ class Follower(SharedState):
     def requestVote(self, msg):
         term = msg.body.term
 
+        if term > self.currentTerm:
+            self.votedFor = None
+            self.currentTerm = term
+
         if  term < self.currentTerm or \
             (term == self.currentTerm and self.votedFor != None and self.votedFor != msg.src) or \
             (len(self.log) > 0 and \
@@ -33,7 +37,6 @@ class Follower(SharedState):
         else:
             self.timer.stop()
             self.votedFor = msg.src
-            self.currentTerm = term
             self.node.reply(msg, type='handleVote', term=term, voteGranted=True)
             self.timer.reset()
 
