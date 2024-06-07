@@ -4,7 +4,7 @@ from threading import Lock
 from Node_Timer import Node_Timer
 
 class SharedState:
-    def __init__(self, node, votedFor=None):
+    def __init__(self, node=None, votedFor=None):
         # Lin-kv Store
         self.kv_store = dict()
         self.kv_log_store = dict()
@@ -20,8 +20,9 @@ class SharedState:
 
         # Other
         self.timer = Node_Timer(0.150, 0.300)
-
-        self.node = node
+        
+        if node != None:
+            self.node = node
 
         self.lock = Lock()
 
@@ -68,5 +69,5 @@ class SharedState:
     def updateCommitIndex(self):
         self.commitIndex = min(self.maxCommit, len(self.log)-1)
         if self.commitIndex > self.lastApplied:
-            self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
+            self.applyLogEntries(self.log[self.lastApplied+1:self.commitIndex+1])
             self.lastApplied = self.commitIndex
