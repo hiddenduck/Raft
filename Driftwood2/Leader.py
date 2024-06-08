@@ -43,6 +43,7 @@ class Leader(SharedState):
     
     def write(self, msg):
         self.log.append((msg, self.currentTerm))
+        self.nextCommit = len(self.log)-1
         self.checkBitmap()
         self.updateBitmap()
         self.checkCommitIndex()
@@ -117,6 +118,7 @@ class Leader(SharedState):
                     else:
                         self.log = entries
 
+                    self.nextCommit = min(len(self.log)-1, nextCommit)
                     self.checkBitmap()
                     self.updateBitmap()
                     self.checkCommitIndex()
@@ -126,7 +128,7 @@ class Leader(SharedState):
                     if not isRPC:
                         self.roundLC = leaderRound
                         #TODO Gossip request
-                        self.sendEntries(leaderID, prevLogIndex)
+                        self.sendEntries(leaderID, prevLogIndex=prevLogIndex)
                     
                 else:
                     self.roundLC = leaderRound

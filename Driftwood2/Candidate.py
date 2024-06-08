@@ -80,6 +80,7 @@ class Candidate(SharedState):
                     else:
                         self.log = entries
                     #sempre que o log muda testa-se o commitindex
+                    self.nextCommit = min(len(self.log)-1, nextCommit)
                     self.checkBitmap()
                     self.updateBitmap()
                     self.checkCommitIndex()
@@ -89,7 +90,7 @@ class Candidate(SharedState):
                     if not isRPC:
                         self.roundLC = leaderRound
                         #TODO Gossip request
-                        self.sendEntries(leaderID, prevLogIndex)
+                        self.sendEntries(leaderID, prevLogIndex=prevLogIndex)
                     
                 else:
                     self.roundLC = leaderRound

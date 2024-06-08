@@ -160,7 +160,7 @@ class Leader(SharedState):
                     if not isRPC:
                         self.roundLC = leaderRound
                         #TODO Gossip request
-                        self.sendEntries(leaderID, leaderCommit, prevLogIndex)
+                        self.sendEntries(leaderID, leaderCommit, prevLogIndex=prevLogIndex)
                     
                     self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
                 
