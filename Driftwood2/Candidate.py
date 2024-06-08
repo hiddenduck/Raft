@@ -39,7 +39,7 @@ class Candidate(SharedState):
 
             if  len(self.log) > 0 and \
                 (msg.body.lastLogTerm < self.log[-1][1] or \
-                (msg.body.lastLogTerm == self.log[-1][1] and msg.body.lastLogIndex < len(self.log))):
+                (msg.body.lastLogTerm == self.log[-1][1] and msg.body.lastLogIndex < len(self.log)-1)):
                 #Não devíamos responder se não vai mudar em nada
                 self.node.reply(msg, type='handleVote', term=term, voteGranted=False)
                 votedFor = None

@@ -33,7 +33,7 @@ class Follower(SharedState):
             (term == self.currentTerm and self.votedFor != None and self.votedFor != msg.src) or \
             (len(self.log) > 0 and \
             (msg.body.lastLogTerm < self.log[-1][1] or \
-            (msg.body.lastLogTerm == self.log[-1][1] and msg.body.lastLogIndex < len(self.log)))):
+            (msg.body.lastLogTerm == self.log[-1][1] and msg.body.lastLogIndex < len(self.log)-1))):
             self.node.reply(msg, type='handleVote', term=self.currentTerm, voteGranted=False) #todo: reply false, is it worth tho? in the paper says to reply false
         else:
             self.timer.stop()
