@@ -126,7 +126,7 @@ class Leader(SharedState):
                     if not isRPC:
                         self.roundLC = leaderRound
                         #TODO Gossip request
-                        self.sendEntries(self.node.node_id(), prevLogIndex)
+                        self.sendEntries(leaderID, prevLogIndex)
                     
                 else:
                     self.roundLC = leaderRound
