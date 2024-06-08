@@ -49,9 +49,9 @@ class Follower(SharedState):
             self.currentTerm = term
             self.roundLC = 0
             self.create_peer_permutation()
-            self.votedFor = leaderID
 
         if term >= self.currentTerm:
+            self.votedFor = leaderID
             if (isRPC or leaderRound > self.roundLC):
                 self.timer.stop()
 

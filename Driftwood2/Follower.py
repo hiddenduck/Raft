@@ -46,9 +46,10 @@ class Follower(SharedState):
         bitmap = bitarray(bitlist)
 
         if term > self.currentTerm:
-            self.newTerm(term, votedFor=leaderID)
+            self.newTerm(term)
 
         if term >= self.currentTerm:
+            self.votedFor = leaderID
             self.mergeBitmap(bitmap, maxCommit, nextCommit)
             if (isRPC or leaderRound > self.roundLC):
                 self.timer.stop()
