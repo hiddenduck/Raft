@@ -72,6 +72,7 @@ class Follower(SharedState):
                     
                     self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
                 else:
+                    self.roundLC = leaderRound
                     self.log = self.log[:prevLogIndex]
                     self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log)-1, prevLogIndex-1))
 

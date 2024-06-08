@@ -29,7 +29,7 @@ class Candidate(SharedState):
     def startRequestVote(self):
         lenLog = len(self.log)
         for dest_id in self.node.node_ids():
-            self.node.send(dest_id, type="requestVote", term=self.currentTerm, lastLogIndex = lenLog, lastLogTerm = self.log[-1][1] if lenLog!=0 else 0)
+            self.node.send(dest_id, type="requestVote", term=self.currentTerm, lastLogIndex = lenLog-1, lastLogTerm = self.log[-1][1] if lenLog!=0 else 0)
     
     def requestVote(self, msg):
         term = msg.body.term
@@ -92,6 +92,7 @@ class Candidate(SharedState):
                         self.sendEntries(leaderID)
                     
                 else:
+                    self.roundLC = leaderRound
                     self.log = self.log[:prevLogIndex]
                     self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log)-1, prevLogIndex-1))        
 

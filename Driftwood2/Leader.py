@@ -129,6 +129,7 @@ class Leader(SharedState):
                         self.sendEntries(self.node.node_id())
                     
                 else:
+                    self.roundLC = leaderRound
                     self.log = self.log[:prevLogIndex]
                     self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log)-1, prevLogIndex-1))
 
