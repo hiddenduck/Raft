@@ -53,17 +53,7 @@ class Leader(SharedState):
     
     def write(self, msg):
         self.log.append((msg, self.currentTerm))
-
-        for dest_id in self.node.node_ids():
-            if len(self.log) >= self.nextIndex[dest_id]:
-                self.node.send(dest_id, type="appendEntries", message=(
-                    self.currentTerm, # term
-                    self.node.node_id(), #leaderId
-                    self.nextIndex[dest_id]-1, # prevLogIndex
-                    self.log[self.nextIndex[dest_id]-1][1] if self.nextIndex[dest_id]-1 >= 0 else -1, # prevLogTerm
-                    [self.log[i] for i in range(self.nextIndex[dest_id],len(self.log))], # entries[]
-                    self.commitIndex) # leaderCommit
-                )
+        #self.sendEntries()
     
     def write_redirect(self, msg):
         self.write(msg.body.msg)
@@ -166,7 +156,7 @@ class Leader(SharedState):
             
                 if leaderCommit > self.commitIndex:
                     self.commitIndex = min(leaderCommit, len(self.log)-1)
-                    self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
+                    self.applyLogEntries(self.log[self.lastApplied+1:self.commitIndex+1])
                     self.lastApplied = self.commitIndex
 
                 if entries or prevLogIndex != len(self.log)-1:

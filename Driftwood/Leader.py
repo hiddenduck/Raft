@@ -1,6 +1,7 @@
 from SharedState import SharedState
 from node import *
 from bitarray import bitarray
+import time
 
 class Leader(SharedState):
     def __init__(self, sharedState):
@@ -24,7 +25,7 @@ class Leader(SharedState):
         self.timer.a = 0.05
         self.timer.b = 0.05
         self.timer.create(lambda s: s.heartbeat(), self)
-        self.timer.start()        
+        self.timer.start()
 
     def heartbeat(self):
         self.node.log('Heartbeat Sent')
@@ -153,7 +154,7 @@ class Leader(SharedState):
                 
                     if leaderCommit > self.commitIndex:
                         self.commitIndex = min(leaderCommit, len(self.log)-1)
-                        self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
+                        self.applyLogEntries(self.log[self.lastApplied+1:self.commitIndex+1])
                         self.lastApplied = self.commitIndex
 
                     if not isRPC:

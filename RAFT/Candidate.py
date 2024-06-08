@@ -84,7 +84,7 @@ class Candidate(SharedState):
             
                 if leaderCommit > self.commitIndex:
                     self.commitIndex = min(leaderCommit, len(self.log)-1)
-                    self.applyLogEntries(self.log[self.lastApplied:self.commitIndex+1])
+                    self.applyLogEntries(self.log[self.lastApplied+1:self.commitIndex+1])
                     self.lastApplied = self.commitIndex
 
                 if entries or prevLogIndex != len(self.log)-1:
