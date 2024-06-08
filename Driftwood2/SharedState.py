@@ -135,7 +135,9 @@ class SharedState:
             self.bitarray |= bitarray
             self.updateBitmap()
     
-    def sendEntries(self, leaderId, isRPC=False):
+    def sendEntries(self, leaderId, isRPC=False, prevLogIndex=None):
+        if prevLogIndex == None:
+            prevLogIndex = self.commitIndex
         ids = self.node.node_ids()
         len_ids = len(ids)
         for i in range(self.fanout):
@@ -143,9 +145,9 @@ class SharedState:
             self.node.send(dest_id, type="appendEntries", message=(
                     self.currentTerm, # term
                     leaderId, #leaderId
-                    self.commitIndex, # prevLogIndex
-                    self.log[self.commitIndex][1] if self.commitIndex >= 0 else -1, # prevLogTerm
-                    [self.log[i] for i in range(self.commitIndex+1,len(self.log))], # entries[]
+                    prevLogIndex, # prevLogIndex
+                    self.log[prevLogIndex][1] if prevLogIndex >= 0 else -1, # prevLogTerm
+                    [self.log[i] for i in range(prevLogIndex+1,len(self.log))], # entries[]
                     self.roundLC, #leaderRound
                     isRPC, #isRPC
                     self.bitarray.to01(), #bitmap

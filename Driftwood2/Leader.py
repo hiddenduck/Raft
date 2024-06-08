@@ -26,8 +26,8 @@ class Leader(SharedState):
         lock = self.lock
         with lock:
             if self.node.active_class == self:
-                self.sendEntries(self.node.node_id())
                 self.roundLC += 1
+                self.sendEntries(self.node.node_id())
             self.timer.reset()
 
     def read(self, msg):
@@ -126,7 +126,7 @@ class Leader(SharedState):
                     if not isRPC:
                         self.roundLC = leaderRound
                         #TODO Gossip request
-                        self.sendEntries(self.node.node_id())
+                        self.sendEntries(self.node.node_id(), prevLogIndex)
                     
                 else:
                     self.roundLC = leaderRound

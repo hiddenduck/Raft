@@ -68,7 +68,7 @@ class Follower(SharedState):
 
                     if not isRPC:
                         self.roundLC = leaderRound
-                        self.sendEntries(leaderID, leaderCommit)
+                        self.sendEntries(leaderID, leaderCommit, prevLogIndex)
                     
                     self.node.send(leaderID, type="appendEntries_success", term=self.currentTerm, lastLogIndex=len(self.log)-1)
                 else:

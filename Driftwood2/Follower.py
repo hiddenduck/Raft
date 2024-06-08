@@ -68,7 +68,7 @@ class Follower(SharedState):
                     if not isRPC:
                         self.roundLC = leaderRound
                         #TODO Gossip request
-                        self.sendEntries(leaderID)
+                        self.sendEntries(leaderID, prevLogIndex)
                     
                 else:
                     self.roundLC = leaderRound
