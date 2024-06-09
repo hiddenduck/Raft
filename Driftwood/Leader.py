@@ -119,7 +119,7 @@ class Leader(SharedState):
                 [self.log[i] for i in range(lastLogIndex+1,len(self.log))], # entries[]
                 self.commitIndex, # leaderCommit
                 self.roundLC, #leaderRound
-                False #isRPC
+                True #isRPC
                 )
                 )
         else:
