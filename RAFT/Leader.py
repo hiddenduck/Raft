@@ -84,20 +84,20 @@ class Leader(SharedState):
 
         # Detect Majority
 
-        count = 0
+        count = 1
         candidate = None
 
         for replica in self.matchIndex.keys():
-            if count == 0:
+            if count == 1:
                 candidate = self.matchIndex[replica]
-                count = 1
+                count = 2
             else:
                 count = count+1 if self.matchIndex[replica] == candidate else count-1
         
         if candidate == self.commitIndex:
             return
 
-        count = 0
+        count = 1
 
         for replica in self.matchIndex.keys():
             if self.matchIndex[replica] == candidate:
