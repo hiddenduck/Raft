@@ -140,7 +140,7 @@ class Leader(SharedState):
             self.mergeBitmap(bitmap, maxCommit, nextCommit)
             self.updateBitmap()
         else:
-            self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=len(self.log)-1)
+            self.node.send(leaderID, type="appendEntries_insuccess", term=self.currentTerm, lastLogIndex=min(len(self.log)-1, prevLogIndex-1))
 
     def requestVote(self, msg):
         term = msg.body.term
