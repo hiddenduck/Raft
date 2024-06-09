@@ -59,7 +59,7 @@ class Follower(SharedState):
                     else:
                         self.log = entries
                     #sempre que o log muda testa-se o commitindex&bitmap
-                    self.nextCommit = min(len(self.log)-1, nextCommit)
+                    self.nextCommit = max(len(self.log)-1, self.maxCommit+1)
                     self.checkBitmap()
                     self.updateBitmap()
                     self.checkCommitIndex()

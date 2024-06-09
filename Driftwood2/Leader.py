@@ -118,7 +118,7 @@ class Leader(SharedState):
                     else:
                         self.log = entries
 
-                    self.nextCommit = min(len(self.log)-1, nextCommit)
+                    self.nextCommit = max(len(self.log)-1, self.maxCommit+1)
                     self.checkBitmap()
                     self.updateBitmap()
                     self.checkCommitIndex()
